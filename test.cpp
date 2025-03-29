@@ -64,9 +64,9 @@ void saveResult(const std::unordered_map<int, std::unordered_map<int, float>>& r
 }
 
 int main() {
-    int rows = 18528;
-    int cols = 123628;
-    std::string inputFilename = "matrix.txt";
+    int rows = 100;
+    int cols = 100;
+    std::string inputFilename = "matrix_small.txt";
     std::string outputFilename = "result.txt";
 
     // 读取稀疏矩阵

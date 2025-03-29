@@ -1,0 +1,36 @@
+{
+  "tasks": [
+    {
+      "metadata": {
+        "task_type": "matrix_multiply",
+        "description": "这是一个维度为18528和123628的矩阵，以稀疏矩阵三元组(item item value)的形式存储在matrix.txt文件中,计算矩阵与它转置的乘积并保存在新的txt中",
+        "hardware": {
+          "cpu": {
+            "cores": 8,
+            "threads": 16,
+            "frequency": "3.6 GHz",
+            "available": "True"
+          },
+          "gpu": {
+            "cuda_cores": 3584,
+            "memory": {
+              "size": "12 GB",
+              "type": "GDDR6"
+            },
+            "available": "True"
+          }
+        },
+        "data_format": {
+          "file_type": "JSON",
+          "data_structure": "adjacency_list",
+          "data_type": "int32",
+          "additional_metadata": {
+            "node_id_type": "string",
+            "edge_weight_type": "float32"
+          }
+        },
+        "code": "```cpp\n#include <iostream>\n#include <fstream>\n#include <vector>\n#include <algorithm>\n#include <thread>\n#include <chrono>\n\n// Function to read the sparse matrix from a file\nstd::vector<std::tuple<int, int, int>> readSparseMatrix(const std::string& filename) {\n    std::ifstream file(filename);\n    if (!file.is_open()) {\n        throw std::runtime_error(\"Failed to open file\");\n    }\n\n    std::vector<std::tuple<int, int, int>> matrix;\n    int item1, item2, value;\n    while (file >> item1 >> item2 >> value) {\n        matrix.push_back({item1, item2, value});\n    }\n    file.close();\n    return matrix;\n}\n\n// Function to write the result to a file\nvoid writeResultToFile(const std::vector<std::tuple<int, int, int>>& result, const std::string& filename) {\n    std::ofstream file(filename);\n    if (!file.is_open()) {\n        throw std::runtime_error(\"Failed to open file\");\n    }\n\n    for (const auto& [item1, item2, value] : result) {\n        file << item1 << \" \" << item2 << \" \" << value << \"\\n\";\n    }\n    file.close();\n}\n\n// Function to perform matrix multiplication using parallelism\nvoid multiplyMatrices(const std::vector<std::tuple<int, int, int>>& A, const std::vector<std::tuple<int, int, int>>& B, std::vector<std::tuple<int, int, int>>& C, int numThreads) {\n    // Initialize the result matrix with zeros\n    C.resize(A.size());\n\n    // Create threads\n    std::vector<std::thread> threads(numThreads);\n\n    // Distribute work among threads\n    int chunkSize = A.size() / numThreads;\n    for (int i = 0; i < numThreads; ++i) {\n        int start = i * chunkSize;\n        int end = (i == numThreads - 1) ? A.size() : (start + chunkSize);\n        threads[i] = std::thread([&, start, end]() {\n            for (int k = start; k < end; ++k) {\n                int item1 = std::get<0>(A[k]);\n                int item2 = std::get<1>(B[k]);\n                int value = std::get<2>(A[k]);\n\n                for (int j = 0; j < B.size(); ++j) {\n                    if (std::get<0>(B[j]) == item2 && std::get<1>(B[j]) == item1) {\n                        int currentValue = std::get<2>(B[j]);\n                        int existingValue = std::get<2>(C[k]);\n                        std::get<2>(C[k]) += currentValue * existingValue;\n                    }\n                }\n            }\n        });\n    }\n\n    // Join all threads\n    for (auto& thread : threads) {\n        thread.join();\n    }\n}\n\nint main() {\n    try {\n        // Read the sparse matrices from files\n        std::vector<std::tuple<int, int, int>> A = readSparseMatrix(\"matrix.txt\");\n\n        // Transpose matrix A\n        std::vector<std::tuple<int, int, int>> AT;\n        for (const auto& [item1, item2, value] : A) {\n            AT.push_back({item2, item1, value});\n        }\n\n        // Calculate the size of the resulting matrix\n        int numRows = A.size();\n        int numCols = AT.size();\n\n        // Allocate memory for the result matrix\n        std::vector<std::tuple<int, int, int>> C(numRows * numCols);\n\n        // Perform matrix multiplication in parallel\n        int numThreads = 8; // Adjust based on your hardware configuration\n        multiplyMatrices(A, AT, C, numThreads);\n\n        // Write the result to a file\n        writeResultToFile(C, \"result.txt\");\n\n        std::cout << \"Matrix multiplication completed successfully.\" << std::endl;\n\n    } catch (const std::exception& e) {\n        std::cerr << \"Error: \" << e.what() << std::endl;\n    }\n\n    return 0;\n}\n```"
+      }
+    }
+  ]
+}
