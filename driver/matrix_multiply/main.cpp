@@ -10,13 +10,6 @@
 // 假设 multiplyWithTranspose 在 generate.hpp 中定义
 #include "generate.hpp"
 
-// 定义三元组结构体
-struct Triplet {
-    int row;
-    int col;
-    float value;
-};
-
 // 读取稀疏矩阵的三元组表示
 std::vector<Triplet> readSparseMatrix(const std::string& filename) {
     std::vector<Triplet> matrix;
@@ -98,4 +91,4 @@ int main() {
     std::cout << "内存占用: " << memory_usage << " KB" << std::endl;
 
     return 0;
-}
+}    
