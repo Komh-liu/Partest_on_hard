@@ -1,94 +1,75 @@
+#include "matrix_multiply.h"
 #include <iostream>
+#include <chrono>
 #include <fstream>
 #include <vector>
-#include <unordered_map>
-#include <omp.h>
-#include <chrono>
-#include <sys/resource.h>
-#include <sys/time.h>
-
-// 假设 multiplyWithTranspose 在 generate.hpp 中定义
-#include "generate.hpp"
-
-// 读取稀疏矩阵的三元组表示
-std::vector<Triplet> readSparseMatrix(const std::string& filename) {
-    std::vector<Triplet> matrix;
+Matrix load_matrix(const std::string& filename) {
     std::ifstream file(filename);
-    if (file.is_open()) {
-        int row, col;
-        float value;
-        while (file >> row >> col >> value) {
-            matrix.push_back({row, col, value});
-        }
-        file.close();
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+        exit(1);
     }
+
+    int rows = 3, cols = 4;
+    // file >> rows >> cols; // 读取矩阵的行数和列数
+
+    Matrix matrix(rows, std::vector<int>(cols, 0)); // 初始化为全零矩阵
+
+    // 读取三元组形式的非零元素
+    int i, j, value;
+    while (file >> i >> j >> value) {
+        if (i >= 0 && i < rows && j >= 0 && j < cols) {
+            matrix[i][j] = value;
+        } else {
+            std::cerr << "Invalid matrix coordinates: (" << i << ", " << j << ")" << std::endl;
+        }
+    }
+
     return matrix;
 }
 
-// 将结果保存到文件中
-void saveResult(const std::unordered_map<int, std::unordered_map<int, float>>& result, const std::string& filename) {
+// 将矩阵保存为三元组形式
+void save_matrix(const Matrix& matrix, const std::string& filename) {
     std::ofstream file(filename);
-    if (file.is_open()) {
-        for (const auto& rowPair : result) {
-            int row = rowPair.first;
-            for (const auto& colPair : rowPair.second) {
-                int col = colPair.first;
-                float value = colPair.second;
-                file << row << " " << col << " " << value << std::endl;
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+        exit(1);
+    }
+
+    int rows = matrix.size();
+    if (rows == 0) {
+        std::cerr << "Matrix is empty." << std::endl;
+        return;
+    }
+
+    int cols = matrix[0].size();
+    // file << rows << " " << cols << std::endl; // 写入矩阵的行数和列数
+
+    // 保存非零元素为三元组形式
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            if (matrix[i][j] != 0) {
+                file << i << " " << j << " " << matrix[i][j] << std::endl;
             }
         }
-        file.close();
     }
 }
-
-// 获取 CPU 时间
-double getCPUTime() {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
-    return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000.0;
-}
-
-// 获取内存使用情况
-long getMemoryUsage() {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
-    return ru.ru_maxrss;
-}
-
 int main() {
-    int rows = 100;
-    int cols = 100;
-    std::string inputFilename = "matrix_small.txt";
-    std::string outputFilename = "result.txt";
+    Matrix A = load_matrix("matrix_small.txt"); // 加载矩阵
+    Matrix result(A.size(), std::vector<int>(A.size()));
+    result.resize(A[0].size(), std::vector<int>(A[0].size(), 0)); // 初始化结果矩阵为 m x m 的零矩阵
+    // 使用std::fill填充矩阵为全0
+    for (auto& row : result) {
+        std::fill(row.begin(), row.end(), 0);
+    }
 
-    // 读取稀疏矩阵
-    std::vector<Triplet> matrix = readSparseMatrix(inputFilename);
+    auto start = std::chrono::high_resolution_clock::now();
+    matrix_multiply(A, result); // 统一函数调用
+    auto end = std::chrono::high_resolution_clock::now();
 
-    // 记录开始时间
-    auto start_time = std::chrono::high_resolution_clock::now();
-    double start_cpu_time = getCPUTime();
-    long start_memory = getMemoryUsage();
-
-    // 计算矩阵与它转置的乘积
-    std::unordered_map<int, std::unordered_map<int, float>> product = multiplyWithTranspose(matrix, rows, cols);
-
-    // 记录结束时间
-    auto end_time = std::chrono::high_resolution_clock::now();
-    double end_cpu_time = getCPUTime();
-    long end_memory = getMemoryUsage();
-
-    // 计算时间和内存使用情况
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    double cpu_time = end_cpu_time - start_cpu_time;
-    long memory_usage = end_memory - start_memory;
-
-    // 保存结果到文件
-    saveResult(product, outputFilename);
-
-    std::cout << "矩阵乘法完成，结果已保存到 " << outputFilename << std::endl;
-    std::cout << "测试消耗时间: " << duration << " 毫秒" << std::endl;
-    std::cout << "CPU 占用时间: " << cpu_time << " 秒" << std::endl;
-    std::cout << "内存占用: " << memory_usage << " KB" << std::endl;
-
-    return 0;
-}    
+    // 输出耗时和验证结果
+    std::cout << "Time: " 
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()
+              << "ms\n";
+    save_matrix(result, "/home/liu/Gitrepo/parwork/driver/matrix_multiply/result.txt");
+}

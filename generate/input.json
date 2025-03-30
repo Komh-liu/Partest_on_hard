@@ -1,12 +1,8 @@
 {
     "task": {
       "type": "matrix_multiply",
-      "description": "这是一个维度为18528和123628的矩阵，以稀疏矩阵三元组(item item value)的形式存储在matrix.txt文件中,计算矩阵与它转置的乘积并保存在新的txt中",
-      "example": "3 3 1",
-      "task_specific": {
-        "row": 18528,
-        "col": 123628
-      }
+      "function_signature": "void matrix_multiply(const Matrix& A, Matrix& result)//计算矩阵与其转置的乘积",
+      "context":"using Matrix = std::vector<std::vector<int>>;\n// 统一函数声明（核心唯一接口\nvoid matrix_multiply(const Matrix& A, Matrix& result);\n"
     },
     "hardware": {
       "cpu": {
@@ -27,14 +23,5 @@
     "resources": {
       "cpu_memory": "16 GB",
       "gpu_memory": "12 GB"
-    },
-    "data_format": {
-      "file_type": "JSON",
-      "data_structure": "adjacency_list",
-      "data_type": "int32",
-      "additional_metadata": {
-        "node_id_type": "string",
-        "edge_weight_type": "float32"
-      }
     }
   }

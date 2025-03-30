@@ -1,84 +1,50 @@
 #include <iostream>
-#include <fstream>
-#include <vector>
-#include <unordered_map>
-#include <omp.h>
+#include <cuda_runtime.h>
 
-// 定义三元组结构体
-struct Triplet {
-    int row;
-    int col;
-    float value;
-};
-
-// 读取稀疏矩阵的三元组表示
-std::vector<Triplet> readSparseMatrix(const std::string& filename) {
-    std::vector<Triplet> matrix;
-    std::ifstream file(filename);
-    if (file.is_open()) {
-        int row, col;
-        float value;
-        while (file >> row >> col >> value) {
-            matrix.push_back({row, col, value});
-        }
-        file.close();
-    }
-    return matrix;
-}
-
-// 计算矩阵与它转置的乘积
-std::unordered_map<int, std::unordered_map<int, float>> multiplyWithTranspose(const std::vector<Triplet>& matrix, int rows, int cols) {
-    std::unordered_map<int, std::unordered_map<int, float>> result;
-    int numThreads = omp_get_max_threads();
-    #pragma omp parallel for num_threads(numThreads)
-    for (size_t i = 0; i < matrix.size(); ++i) {
-        for (size_t j = 0; j < matrix.size(); ++j) {
-            if (matrix[i].col == matrix[j].col) {
-                int row = matrix[i].row;
-                int col = matrix[j].row;
-                float prod = matrix[i].value * matrix[j].value;
-                #pragma omp critical
-                {
-                    result[row][col] += prod;
-                }
-            }
-        }
-    }
-    return result;
-}
-
-// 将结果保存到文件中
-void saveResult(const std::unordered_map<int, std::unordered_map<int, float>>& result, const std::string& filename) {
-    std::ofstream file(filename);
-    if (file.is_open()) {
-        for (const auto& rowPair : result) {
-            int row = rowPair.first;
-            for (const auto& colPair : rowPair.second) {
-                int col = colPair.first;
-                float value = colPair.second;
-                file << row << " " << col << " " << value << std::endl;
-            }
-        }
-        file.close();
-    }
+// CUDA 内核函数
+__global__ void addKernel(int *a, int *b, int *c) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    c[i] = a[i] + b[i];
 }
 
 int main() {
-    int rows = 100;
-    int cols = 100;
-    std::string inputFilename = "matrix_small.txt";
-    std::string outputFilename = "result.txt";
+    const int arraySize = 10;
+    const int blockSize = 1;
+    const int gridSize = arraySize / blockSize;
 
-    // 读取稀疏矩阵
-    std::vector<Triplet> matrix = readSparseMatrix(inputFilename);
+    // 在主机上分配内存
+    int h_a[arraySize], h_b[arraySize], h_c[arraySize];
+    for (int i = 0; i < arraySize; i++) {
+        h_a[i] = i;
+        h_b[i] = i * 2;
+    }
 
-    // 计算矩阵与它转置的乘积
-    std::unordered_map<int, std::unordered_map<int, float>> product = multiplyWithTranspose(matrix, rows, cols);
+    // 在设备上分配内存
+    int *d_a, *d_b, *d_c;
+    cudaMalloc((void**)&d_a, arraySize * sizeof(int));
+    cudaMalloc((void**)&d_b, arraySize * sizeof(int));
+    cudaMalloc((void**)&d_c, arraySize * sizeof(int));
 
-    // 保存结果到文件
-    saveResult(product, outputFilename);
+    // 将数据从主机复制到设备
+    cudaMemcpy(d_a, h_a, arraySize * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, h_b, arraySize * sizeof(int), cudaMemcpyHostToDevice);
 
-    std::cout << "矩阵乘法完成，结果已保存到 " << outputFilename << std::endl;
+    // 启动 CUDA 内核
+    addKernel<<<gridSize, blockSize>>>(d_a, d_b, d_c);
+
+    // 将结果从设备复制回主机
+    cudaMemcpy(h_c, d_c, arraySize * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // 打印结果
+    for (int i = 0; i < arraySize; i++) {
+        std::cout << h_c[i] << " ";
+    }
+    std::cout << std::endl;
+
+    // 释放设备内存
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
 
     return 0;
-}    
+}

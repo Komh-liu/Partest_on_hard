@@ -5,7 +5,8 @@
       "task_specific": {
         "参数1": "值1",
         "参数2": "值2"
-      }
+      },
+      "function_signature": "函数声明"
     },
     "hardware": {
       "cpu": {
