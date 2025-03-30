@@ -35,10 +35,10 @@ def generate_code(config_path):
     
     # 可选框架列表
     available_frameworks = [
-        # "OpenMP",
-        # "TBB",
-        # "CUDA",
-        "Serial"
+        "OpenMP",
+        #"TBB",
+        #"CUDA",
+        #"Serial"
     ]
     
     # 构建系统提示词
@@ -98,6 +98,14 @@ def generate_code(config_path):
             code_lines.append(line)
 
     code_content = "\n".join(code_lines).strip()
+
+    # 从代码内容检测框架
+    if "#pragma omp" in code_content:
+        framework = "OpenMP"
+    elif "tbb::" in code_content:
+        framework = "TBB"
+    elif "__global__" in code_content:
+        framework = "CUDA"
 
     # 确保代码内容只包含函数实现
     if code_content.startswith("```cpp") and code_content.endswith("```"):
