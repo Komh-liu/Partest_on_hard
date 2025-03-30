@@ -34,8 +34,13 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     # 根据framework选择头文件包含
     if metadata['framework'] == 'Serial':
         include_line = '#include "single_thread_impl.h"'
+    elif metadata['framework'] == 'OpenMP':
+        include_line = '#include "openmp_impl.h"'
+    elif metadata['framework'] == 'MPI':
+        include_line = '#include "mpi_impl.h"'
     else:
-        include_line = '#include "multi_thread_impl.h"'
+        print(f"不支持的框架: {metadata['framework']}，跳过此任务。")
+        return
 
     # 修改main.cpp以包含正确的头文件
     main_cpp_path = os.path.join(temp_test_folder_path, 'main.cpp')
@@ -56,9 +61,19 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     with open(main_cpp_path, 'w') as main_file:
         main_file.writelines(new_lines)
 
-    # 编译测试代码
+    # 根据框架选择编译命令
     executable_path = os.path.join(temp_dir, 'main')
-    compile_command = f"g++ {main_cpp_path} -o {executable_path} -I{temp_dir} -fopenmp"
+    if metadata['framework'] == 'Serial':
+        compile_command = f"g++ {main_cpp_path} -o {executable_path} -I{temp_dir}"
+    elif metadata['framework'] == 'OpenMP':
+        compile_command = f"g++ -DUSE_OPENMP {main_cpp_path} -o {executable_path} -I{temp_dir} -fopenmp"
+    elif metadata['framework'] == 'MPI':
+        compile_command = f"mpicxx -DUSE_MPI {main_cpp_path} -o {executable_path} -I{temp_dir}"
+    else:
+        print(f"不支持的框架: {metadata['framework']}，跳过此任务。")
+        return
+
+    # 编译测试代码
     compile_result = subprocess.run(compile_command, shell=True, capture_output=True, text=True, cwd=temp_dir)
 
     # 检查编译是否成功

@@ -19,7 +19,7 @@
             "available": "True"
           }
         },
-        "code": "#include <iostream>\n#include <vector>\n\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int rowsA = A.size();\n    int colsA = A[0].size();\n    int colsResult = colsA;\n\n    // Initialize the result matrix with zeros\n    result.resize(rowsA, std::vector<int>(colsResult, 0));\n\n    for (int i = 0; i < rowsA; ++i) {\n        for (int j = 0; j < colsResult; ++j) {\n            for (int k = 0; k < colsA; ++k) {\n                result[i][j] += A[i][k] * A[k][j];\n            }\n        }\n    }\n}",
+        "code": "#include <iostream>\n#include <vector>\n\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int rowsA = A.size();\n    int colsA = A[0].size();\n    int colsResult = colsA;\n\n    // Initialize the result matrix with zeros\n    result.resize(rowsA, std::vector<int>(colsResult, 0));\n\n    for (int i = 0; i < rowsA; ++i) {\n        for (int j = 0; j < colsResult; ++j) {\n            for (int k = 0; k < rowsA; ++k) {\n                result[i][j] += A[i][k] * A[k][j];\n            }\n        }\n    }\n}",
         "framework": "Serial"
       }
     }
