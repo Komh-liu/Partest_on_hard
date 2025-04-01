@@ -10,8 +10,8 @@ Matrix load_matrix(const std::string& filename) {
         exit(1);
     }
 
-    int rows = 3, cols = 4;
-    // file >> rows >> cols; // 读取矩阵的行数和列数
+    int rows, cols;
+    file >> rows >> cols; // 读取矩阵的行数和列数
 
     Matrix matrix(rows, std::vector<int>(cols, 0)); // 初始化为全零矩阵
 
