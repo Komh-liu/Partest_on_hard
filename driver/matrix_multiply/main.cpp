@@ -68,7 +68,6 @@ int main() {
     auto start = std::chrono::high_resolution_clock::now();
     matrix_multiply(A, result); // 统一函数调用
     auto end = std::chrono::high_resolution_clock::now();
-
     // 输出耗时和验证结果
     std::cout << "Time: " 
               << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()

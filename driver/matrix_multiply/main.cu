@@ -56,7 +56,7 @@ int main() {
     int N, M;
     Matrix A = load_matrix("/home/liu/Gitrepo/parwork/dataset/matrix_multiply/matrix_small.txt", N, M); // 加载矩阵
     Matrix result; // 初始化结果矩阵为空
-
+    result.resize(N * N , 0);
     auto start = std::chrono::high_resolution_clock::now();
     matrix_multiply(A, N, M, result); // 统一函数调用
     auto end = std::chrono::high_resolution_clock::now();

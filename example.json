@@ -1,12 +1,14 @@
 {
     "task": {
       "type": "任务类型",
-      "description": "任务描述",
-      "task_specific": {
-        "参数1": "值1",
-        "参数2": "值2"
+      "function_signatures": {
+        "CUDA": "cuda函数签名",
+        "other": "cpp函数签名"
       },
-      "function_signature": "函数声明"
+      "contexts": {
+          "CUDA": "// CUDA上下文",
+          "other": "// CPP通用上下文"
+      }
     },
     "hardware": {
       "cpu": {
@@ -27,14 +29,5 @@
     "resources": {
       "cpu_memory": "CPU内存大小",
       "gpu_memory": "GPU显存大小"
-    },
-    "data_format": {
-      "file_type": "文件类型",
-      "data_structure": "数据结构",
-      "data_type": "数据类型",
-      "additional_metadata": {
-        "参数1": "值1",
-        "参数2": "值2"
-      }
     }
   }

@@ -69,10 +69,15 @@ def extract_and_compile(metadata, current_dir, temp_dir):
 
     # 根据框架调整编译命令
     if framework == 'OpenMP':
-        compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -fopenmp"
-    if framework == 'CUDA':
-        compile_command = f"nvcc {os.path.join(temp_test_folder_path, 'main.cu')} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart"
-        print("nvcc编译")
+        compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -fopenmp -DUSE_OPENMP"
+        print("g++ OpenMP编译")
+    elif framework == 'CUDA':
+        main_cu_path = os.path.join(temp_test_folder_path, 'main.cu')
+        compile_command = f"nvcc {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart"
+        print("nvcc CUDA编译")
+    elif framework == 'MPI':
+        compile_command = f"mpicxx {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -DUSE_MPI"
+        print("mpicxx MPI编译")
     else:
         print("g++编译")
         compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir}"

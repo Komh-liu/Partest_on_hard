@@ -2,8 +2,8 @@
   "task": {
       "type": "matrix_multiply",
       "function_signatures": {
-          "CUDA": "void matrix_multiply(const Matrix& A, int N, int M, Matrix& result);//N为行数 M为列数,计算矩阵与其转置的乘法",
-          "other": "void matrix_multiply(const Matrix& A, Matrix& result);//计算矩阵与其转置的乘法"
+          "CUDA": "void matrix_multiply(const Matrix& A, int N, int M, Matrix& result);//N为行数 M为列数,计算矩阵A与其转置的乘法",
+          "other": "void matrix_multiply(const Matrix& A, Matrix& result);//计算矩阵A与其转置的乘法"
       },
       "contexts": {
           "CUDA": "// CUDA 适合使用一维数组\nusing Matrix = std::vector<int>;",
