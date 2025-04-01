@@ -3,9 +3,15 @@ import subprocess
 import os
 import tempfile
 import shutil
-
+def list_files_in_directory(directory):
+    """列出指定目录中的所有文件和文件夹"""
+    files = os.listdir(directory)
+    print(f"目录内容 ({directory}):")
+    for file in files:
+        print(f"  {file}")
 def extract_and_compile(metadata, current_dir, temp_dir):
     framework = metadata['framework']
+    task_type = metadata['task_type']  # 获取任务类型
     # 创建头文件路径
     if framework == 'Serial':
         header_file_name = 'single_thread_impl.h'
@@ -28,20 +34,24 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         header_file.write(protected_code)
 
     # 定义相对路径的测试文件夹
-    relative_test_folder_path = 'matrix_multiply'
+    relative_test_folder_path = task_type
 
     # 计算测试文件夹的绝对路径
     absolute_test_folder_path = os.path.join(current_dir, relative_test_folder_path)
-
+    # print(absolute_test_folder_path)
     # 检查文件夹是否存在
     if not os.path.exists(absolute_test_folder_path):
         print(f"文件夹 {absolute_test_folder_path} 不存在，跳过此任务。")
         return
 
-    # 复制整个matrix_multiply文件夹到临时文件夹
+    # 复制整个f"{task_type}"文件夹到临时文件夹
     temp_test_folder_path = os.path.join(temp_dir, relative_test_folder_path)
     shutil.copytree(absolute_test_folder_path, temp_test_folder_path)
-
+    
+    # 记录复制的文件夹路径
+    # print(f"测试文件夹已复制到: {temp_test_folder_path}")
+    # list_files_in_directory(temp_test_folder_path)  # 列出复制后的文件夹中的文件
+    
     # 根据framework选择头文件包含
     include_line = f'#include "{header_file_name}"'
 
@@ -58,11 +68,13 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         lines = main_file.readlines()
 
     new_lines = []
+    found_include = False
     for line in lines:
-        if line.startswith('#include "matrix_multiply.h"'):
-            new_lines.append(f'{include_line}\n')
-        else:
-            new_lines.append(line)
+        if line.startswith("#include"):
+            if not found_include:
+                new_lines.append(f'{include_line}\n')
+                found_include = True
+        new_lines.append(line)
 
     with open(main_cpp_path, 'w') as main_file:
         main_file.writelines(new_lines)
@@ -80,6 +92,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         print("mpicxx MPI编译")
     else:
         print("g++编译")
+        # print(main_cpp_path)
         compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir}"
 
     compile_result = subprocess.run(compile_command, shell=True, capture_output=True, text=True, cwd=temp_dir)
