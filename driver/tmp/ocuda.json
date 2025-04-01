@@ -1,0 +1,27 @@
+{
+  "tasks": [
+    {
+      "metadata": {
+        "task_type": "matrix_multiply",
+        "hardware": {
+          "cpu": {
+            "cores": 8,
+            "threads": 16,
+            "frequency": "3.6 GHz",
+            "available": "True"
+          },
+          "gpu": {
+            "cuda_cores": 3584,
+            "memory": {
+              "size": "12 GB",
+              "type": "GDDR6"
+            },
+            "available": "True"
+          }
+        },
+        "code": "#include <cuda_runtime.h>\n#include <vector>\n\nusing Matrix = std::vector<int>;\n\n__global__ void matrixMultiplyKernel(const int* A, const int* B, int* C, int N, int M, int K) {\n    int row = blockIdx.y * blockDim.y + threadIdx.y;\n    int col = blockIdx.x * blockDim.x + threadIdx.x;\n    int sum = 0;\n\n    if (row < N && col < K) {\n        for (int i = 0; i < M; ++i) {\n            sum += A[row * M + i] * B[i * K + col];\n        }\n        C[row * K + col] = sum;\n    }\n}\n\nvoid matrix_multiply(const Matrix& A, int N, int M, Matrix& result) {\n    int K = result.size() / N;\n    size_t sizeA = A.size() * sizeof(int);\n    size_t sizeB = M * K * sizeof(int);\n    size_t sizeC = result.size() * sizeof(int);\n\n    int* d_A, *d_B, *d_C;\n    cudaMalloc(&d_A, sizeA);\n    cudaMalloc(&d_B, sizeB);\n    cudaMalloc(&d_C, sizeC);\n\n    cudaMemcpy(d_A, A.data(), sizeA, cudaMemcpyHostToDevice);\n    cudaMemcpy(d_B, A.data() + N * M, sizeB, cudaMemcpyHostToDevice);\n\n    dim3 threadsPerBlock(16, 16);\n    dim3 numBlocks((K + threadsPerBlock.x - 1) / threadsPerBlock.x, (N + threadsPerBlock.y - 1) / threadsPerBlock.y);\n\n    matrixMultiplyKernel<<<numBlocks, threadsPerBlock>>>(d_A, d_B, d_C, N, M, K);\n\n    cudaMemcpy(result.data(), d_C, sizeC, cudaMemcpyDeviceToHost);\n\n    cudaFree(d_A);\n    cudaFree(d_B);\n    cudaFree(d_C);\n}",
+        "framework": "CUDA"
+      }
+    }
+  ]
+}

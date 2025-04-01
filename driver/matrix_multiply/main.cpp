@@ -12,7 +12,7 @@ Matrix load_matrix(const std::string& filename) {
 
     int rows, cols;
     file >> rows >> cols; // 读取矩阵的行数和列数
-
+    std::cout << "Matrix size: " << rows << " x " << cols << std::endl;
     Matrix matrix(rows, std::vector<int>(cols, 0)); // 初始化为全零矩阵
 
     // 读取三元组形式的非零元素
@@ -50,9 +50,11 @@ void save_matrix(const Matrix& matrix, const std::string& filename) {
         for (int j = 0; j < cols; ++j) {
             if (matrix[i][j] != 0) {
                 file << i << " " << j << " " << matrix[i][j] << std::endl;
+                //std::cout << "once" << std::endl;
             }
         }
     }
+    //std::cout << "Matrix size: " << rows << " x " << cols << std::endl;
 }
 int main() {
     Matrix A = load_matrix("/home/liu/Gitrepo/parwork/dataset/matrix_multiply/matrix_small.txt"); // 加载矩阵

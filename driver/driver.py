@@ -11,6 +11,8 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         header_file_name = 'single_thread_impl.h'
     elif framework == 'OpenMP':
         header_file_name = 'openmp_impl.h'
+    elif framework == 'CUDA':
+        header_file_name = 'cuda_impl.h'
     else:
         # 这里可以根据需要添加更多框架的处理
         header_file_name = 'single_thread_impl.h'
@@ -44,7 +46,10 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     include_line = f'#include "{header_file_name}"'
 
     # 修改main.cpp以包含正确的头文件
-    main_cpp_path = os.path.join(temp_test_folder_path, 'main.cpp')
+    if framework == 'CUDA':
+        main_cpp_path = os.path.join(temp_test_folder_path, 'main.cu')
+    else :
+        main_cpp_path = os.path.join(temp_test_folder_path, 'main.cpp')        
     if not os.path.exists(main_cpp_path):
         print(f"文件 {main_cpp_path} 不存在，跳过此任务。")
         return
@@ -62,10 +67,14 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     with open(main_cpp_path, 'w') as main_file:
         main_file.writelines(new_lines)
 
-    # 根据框架调整编译命令 CUDA等框架哈尚未实现
+    # 根据框架调整编译命令
     if framework == 'OpenMP':
         compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -fopenmp"
+    if framework == 'CUDA':
+        compile_command = f"nvcc {os.path.join(temp_test_folder_path, 'main.cu')} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart"
+        print("nvcc编译")
     else:
+        print("g++编译")
         compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir}"
 
     compile_result = subprocess.run(compile_command, shell=True, capture_output=True, text=True, cwd=temp_dir)
