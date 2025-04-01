@@ -1,0 +1,33 @@
+{
+  "task": {
+      "type": "matrix_multiply",
+      "function_signatures": {
+          "CUDA": "void matrix_multiply(const Matrix& A, int N, int M, Matrix& result);//N为行数 M为列数,计算矩阵A与其转置的乘法",
+          "other": "void matrix_multiply(const Matrix& A, Matrix& result);//计算矩阵A与其转置的乘法"
+      },
+      "contexts": {
+          "CUDA": "// CUDA 适合使用一维数组\nusing Matrix = std::vector<int>;",
+          "other": "// 通用二维向量矩阵表示\nusing Matrix = std::vector<std::vector<int>>;"
+      }
+  },
+  "hardware": {
+      "cpu": {
+          "cores": 8,
+          "threads": 16,
+          "frequency": "3.6 GHz",
+          "available": "True"
+      },
+      "gpu": {
+          "cuda_cores": 3584,
+          "memory": {
+              "size": "12 GB",
+              "type": "GDDR6"
+          },
+          "available": "True"
+      }
+  },
+  "resources": {
+      "cpu_memory": "16 GB",
+      "gpu_memory": "12 GB"
+  }
+}

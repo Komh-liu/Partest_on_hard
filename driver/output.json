@@ -2,7 +2,7 @@
   "tasks": [
     {
       "metadata": {
-        "task_type": "matrix_multiply",
+        "task_type": "array_sum",
         "hardware": {
           "cpu": {
             "cores": 8,
@@ -19,8 +19,8 @@
             "available": "True"
           }
         },
-        "code": "#include <cuda_runtime.h>\n#include <vector>\n\nusing Matrix = std::vector<int>;\n\n__global__ void matrixMultiplyKernel(int* A, int* At, int* C, int N, int M) {\n    int row = blockIdx.y * blockDim.y + threadIdx.y;\n    int col = blockIdx.x * blockDim.x + threadIdx.x;\n\n    if (row < N && col < N) {\n        int sum = 0;\n        for (int k = 0; k < M; ++k) {\n            sum += A[row * M + k] * At[col * M + k];\n        }\n        C[row * N + col] = sum;\n    }\n}\n\nvoid matrix_multiply(const Matrix& A, int N, int M, Matrix& result) {\n    int* d_A, *d_At, *d_C;\n    size_t sizeA = N * M * sizeof(int);\n    size_t sizeC = N * N * sizeof(int);\n\n    cudaMalloc(&d_A, sizeA);\n    cudaMalloc(&d_At, sizeA);\n    cudaMalloc(&d_C, sizeC);\n\n    cudaMemcpy(d_A, A.data(), sizeA, cudaMemcpyHostToDevice);\n\n    int* At = new int[N * M];\n    for (int i = 0; i < N; ++i) {\n        for (int j = 0; j < M; ++j) {\n            At[j * N + i] = A[i * M + j];\n        }\n    }\n\n    cudaMemcpy(d_At, At, sizeA, cudaMemcpyHostToDevice);\n\n    dim3 threadsPerBlock(16, 16);\n    dim3 numBlocks((N + threadsPerBlock.x - 1) / threadsPerBlock.x, (N + threadsPerBlock.y - 1) / threadsPerBlock.y);\n\n    matrixMultiplyKernel<<<numBlocks, threadsPerBlock>>>(d_A, d_At, d_C, N, M);\n\n    cudaMemcpy(result.data(), d_C, sizeC, cudaMemcpyDeviceToHost);\n\n    delete[] At;\n    cudaFree(d_A);\n    cudaFree(d_At);\n    cudaFree(d_C);\n}",
-        "framework": "CUDA"
+        "code": "#include <vector>\n#include <numeric>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    return std::accumulate(arr.begin(), arr.end(), 0);\n}",
+        "framework": "Serial"
       }
     }
   ]
