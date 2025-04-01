@@ -62,7 +62,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     with open(main_cpp_path, 'w') as main_file:
         main_file.writelines(new_lines)
 
-    # 根据框架调整编译命令
+    # 根据框架调整编译命令 CUDA等框架哈尚未实现
     if framework == 'OpenMP':
         compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -fopenmp"
     else:

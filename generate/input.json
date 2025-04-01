@@ -1,7 +1,7 @@
 {
     "task": {
       "type": "matrix_multiply",
-      "function_signature": "void matrix_multiply(const Matrix& A, Matrix& result)//计算矩阵与其转置的乘积",
+      "function_signature": "void matrix_multiply(const Matrix& A, Matrix& result)//计算矩阵A与其转置A.T的乘积",
       "context":"using Matrix = std::vector<std::vector<int>>;\n// 统一函数声明（核心唯一接口\nvoid matrix_multiply(const Matrix& A, Matrix& result);\n"
     },
     "hardware": {

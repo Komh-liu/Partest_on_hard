@@ -1,7 +1,7 @@
 import json
 from openai import OpenAI
 from config import CONFIG
-
+import os
 def check_available_devices(hardware):
     # 检查可用设备
     available_devices = []
@@ -37,7 +37,7 @@ def generate_code(config_path):
     available_frameworks = [
         "OpenMP",
         #"TBB",
-        #"CUDA",
+        "CUDA",
         #"Serial"
     ]
     
@@ -59,7 +59,7 @@ def generate_code(config_path):
 
     # 初始化OpenAI客户端
     client = OpenAI(
-        api_key=CONFIG["api_key"],
+        api_key = os.getenv('DASHSCOPE_API_KEY'),
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
     )
 
