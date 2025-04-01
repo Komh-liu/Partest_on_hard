@@ -1,6 +1,6 @@
 CONFIG = {
     #"model": "qwen2.5-coder-3b-instruct",
-     "model": "qwen-coder-plus",
+    "model": "qwen-coder-plus",
     "devices": {
         "cpu": {
             "type": "CPU",

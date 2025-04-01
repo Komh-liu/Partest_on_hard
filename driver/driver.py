@@ -18,7 +18,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     elif framework == 'OpenMP':
         header_file_name = 'openmp_impl.h'
     elif framework == 'CUDA':
-        header_file_name = 'cuda_impl.h'
+        header_file_name = 'cuda_impl.cu'
     else:
         # 这里可以根据需要添加更多框架的处理
         header_file_name = 'single_thread_impl.h'
@@ -85,7 +85,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         print("g++ OpenMP编译")
     elif framework == 'CUDA':
         main_cu_path = os.path.join(temp_test_folder_path, 'main.cu')
-        compile_command = f"nvcc {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart"
+        compile_command = f"nvcc {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart -DUSE_CUDA"
         print("nvcc CUDA编译")
     elif framework == 'MPI':
         compile_command = f"mpicxx {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -DUSE_MPI"
