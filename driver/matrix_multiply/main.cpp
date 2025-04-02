@@ -56,8 +56,16 @@ void save_matrix(const Matrix& matrix, const std::string& filename) {
     }
     //std::cout << "Matrix size: " << rows << " x " << cols << std::endl;
 }
-int main() {
-    Matrix A = load_matrix("/home/liu/Gitrepo/parwork/dataset/matrix_multiply/matrix_100.txt"); // 加载矩阵
+int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <input_matrix_file> <output_result_file>" << std::endl;
+        return 1;
+    }
+
+    std::string input_file = argv[1];
+    std::string output_file = argv[2];
+
+    Matrix A = load_matrix(input_file); // 加载矩阵
     Matrix result(A.size(), std::vector<int>(A.size()));
     result.resize(A[0].size(), std::vector<int>(A[0].size(), 0)); // 初始化结果矩阵为 m x m 的零矩阵
     // 使用std::fill填充矩阵为全0
@@ -70,7 +78,9 @@ int main() {
     auto end = std::chrono::high_resolution_clock::now();
     // 输出耗时和验证结果
     std::cout << "Time: " 
-              << std::chrono::duration_cast<std::chrono::milliseconds>(end-start).count()
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
               << "ms\n";
-    save_matrix(result, "/home/liu/Gitrepo/parwork/driver/matrix_multiply/result.txt");
+    save_matrix(result, output_file);
+
+    return 0;
 }

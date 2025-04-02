@@ -3,12 +3,14 @@ import subprocess
 import os
 import tempfile
 import shutil
+
 def list_files_in_directory(directory):
     """列出指定目录中的所有文件和文件夹"""
     files = os.listdir(directory)
     print(f"目录内容 ({directory}):")
     for file in files:
         print(f"  {file}")
+
 def extract_and_compile(metadata, current_dir, temp_dir):
     framework = metadata['framework']
     task_type = metadata['task_type']  # 获取任务类型
@@ -47,19 +49,19 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     # 复制整个f"{task_type}"文件夹到临时文件夹
     temp_test_folder_path = os.path.join(temp_dir, relative_test_folder_path)
     shutil.copytree(absolute_test_folder_path, temp_test_folder_path)
-    
+
     # 记录复制的文件夹路径
     # print(f"测试文件夹已复制到: {temp_test_folder_path}")
     # list_files_in_directory(temp_test_folder_path)  # 列出复制后的文件夹中的文件
-    
+
     # 根据framework选择头文件包含
     include_line = f'#include "{header_file_name}"'
 
     # 修改main.cpp以包含正确的头文件
     if framework == 'CUDA':
         main_cpp_path = os.path.join(temp_test_folder_path, 'main.cu')
-    else :
-        main_cpp_path = os.path.join(temp_test_folder_path, 'main.cpp')        
+    else:
+        main_cpp_path = os.path.join(temp_test_folder_path, 'main.cpp')
     if not os.path.exists(main_cpp_path):
         print(f"文件 {main_cpp_path} 不存在，跳过此任务。")
         return
@@ -85,7 +87,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         print("g++ OpenMP编译")
     elif framework == 'CUDA':
         main_cu_path = os.path.join(temp_test_folder_path, 'main.cu')
-        compile_command = f"nvcc {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart -DUSE_CUDA"
+        compile_command = f"nvcc -std=c++17 {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart -DUSE_CUDA"
         print("nvcc CUDA编译")
     elif framework == 'MPI':
         compile_command = f"mpicxx {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -DUSE_MPI"
@@ -103,9 +105,11 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         print("错误信息：")
         print(compile_result.stderr)
         return
-
+    parent_path = os.path.dirname(current_dir)
     # 运行测试代码
-    run_command = f"./{os.path.basename(os.path.join(temp_dir, 'main'))}"
+    input_file = os.path.join(parent_path, 'dataset', task_type, 'data.txt')
+    output_file = os.path.join(parent_path, 'driver', task_type, 'result.txt')
+    run_command = f"./{os.path.basename(os.path.join(temp_dir, 'main'))} {input_file} {output_file}"
     run_result = subprocess.run(run_command, shell=True, capture_output=True, text=True, cwd=temp_dir)
 
     # 检查运行结果
@@ -135,7 +139,7 @@ with open(json_file_path, 'r') as file:
 for task in data['tasks']:
     # 提取任务的元数据
     metadata = task['metadata']
-    
+
     # 创建临时文件夹
     temp_dir = tempfile.mkdtemp()
 
