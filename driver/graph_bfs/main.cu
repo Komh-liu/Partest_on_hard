@@ -1,8 +1,8 @@
 #include "graph_bfs.h"
 #include <fstream>
-#include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <chrono>
 
 CUDAGraph loadCUDAGraphFromFile(const std::string& filename) {
     std::ifstream file(filename);
@@ -51,19 +51,33 @@ CUDAGraph loadCUDAGraphFromFile(const std::string& filename) {
     return graph;
 }
 
-int main() {
-    std::string filename = "data.txt";
-    CUDAGraph graph = loadCUDAGraphFromFile(filename);
+int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <input_file> <result_file>" << std::endl;
+        return 1;
+    }
+
+    std::string input_file = argv[1];
+    std::string result_file = argv[2];
+    CUDAGraph graph = loadCUDAGraphFromFile(input_file);
 
     if (graph.numVertices > 0) {
-        int start = 0;
-        std::cout << "CUDA BFS starting from vertex " << start << ":\n";
-        bfs(graph, start);
-        
+        int bfs_start_vertex = 0; // 修改变量名以避免冲突
+        std::cout << "CUDA BFS starting from vertex " << bfs_start_vertex << ":\n";
+
+        // 时间测量部分
+        auto time_start = std::chrono::high_resolution_clock::now(); // 修改变量名
+        bfs(graph, bfs_start_vertex);
+        auto time_end = std::chrono::high_resolution_clock::now(); // 修改变量名
+
         // 清理内存
         delete[] graph.offset;
         delete[] graph.edges;
-    }
 
+        // 输出运行时间
+        std::cout << "Time: " 
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count()
+                  << "ms\n";
+    }
     return 0;
 }

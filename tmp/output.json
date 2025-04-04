@@ -1,0 +1,73 @@
+{
+  "tasks": [
+    {
+      "metadata": {
+        "task_type": "array_sum",
+        "hardware": {
+          "cpu": {
+            "cores": 8,
+            "threads": 16,
+            "frequency": "3.6 GHz",
+            "available": "True"
+          },
+          "gpu": {
+            "cuda_cores": 3584,
+            "memory": {
+              "size": "12 GB",
+              "type": "GDDR6"
+            },
+            "available": "True"
+          }
+        },
+        "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    #pragma omp parallel for reduction(+:sum)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
+        "framework": "OpenMP"
+      }
+    },
+    {
+      "metadata": {
+        "task_type": "matrix_multiply",
+        "hardware": {
+          "cpu": {
+            "cores": 8,
+            "threads": 16,
+            "frequency": "3.6 GHz",
+            "available": "True"
+          },
+          "gpu": {
+            "cuda_cores": 3584,
+            "memory": {
+              "size": "12 GB",
+              "type": "GDDR6"
+            },
+            "available": "True"
+          }
+        },
+        "code": "#include <vector>\n#include <omp.h>\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    #pragma omp parallel for schedule(static)\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < n; ++j) {\n            int sum = 0;\n            for (int k = 0; k < A[i].size(); ++k) {\n                sum += A[i][k] * A[j][k];\n            }\n            result[i][j] = sum;\n        }\n    }\n}",
+        "framework": "OpenMP"
+      }
+    },
+    {
+      "metadata": {
+        "task_type": "graph_bfs",
+        "hardware": {
+          "cpu": {
+            "cores": 8,
+            "threads": 16,
+            "frequency": "3.6 GHz",
+            "available": "True"
+          },
+          "gpu": {
+            "cuda_cores": 3584,
+            "memory": {
+              "size": "12 GB",
+              "type": "GDDR6"
+            },
+            "available": "True"
+          }
+        },
+        "code": "#include <vector>\n#include <atomic>\n#include <iostream>\n#include <omp.h>\n\nusing Graph = std::vector<std::vector<int>>;\n\nvoid bfs(const Graph& graph, int start) {\n    int n = graph.size();\n    std::vector<std::atomic<bool>> visited(n);\n    for (auto& v : visited) v.store(false);\n    \n    visited[start].store(true);\n    std::vector<int> current_layer{start};\n    std::cout << start << \" \";\n\n    while (!current_layer.empty()) {\n        std::vector<int> next_layer;\n        \n        #pragma omp parallel\n        {\n            std::vector<int> local_next;\n            #pragma omp for nowait\n            for (int i = 0; i < current_layer.size(); ++i) {\n                int u = current_layer[i];\n                for (int v : graph[u]) {\n                    bool expected = false;\n                    if (visited[v].compare_exchange_strong(expected, true)) {\n                        local_next.push_back(v);\n                    }\n                }\n            }\n            \n            #pragma omp critical\n            next_layer.insert(next_layer.end(), local_next.begin(), local_next.end());\n        }\n\n        for (int v : next_layer) {\n            std::cout << v << \" \";\n        }\n        \n        current_layer.swap(next_layer);\n    }\n}",
+        "framework": "OpenMP"
+      }
+    }
+  ]
+}

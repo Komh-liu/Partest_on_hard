@@ -21,6 +21,8 @@ def extract_and_compile(metadata, current_dir, temp_dir):
         header_file_name = 'openmp_impl.h'
     elif framework == 'CUDA':
         header_file_name = 'cuda_impl.cu'
+    elif framework =='MPI':
+        header_file_name = 'mpi_impl.h'
     else:
         # 这里可以根据需要添加更多框架的处理
         header_file_name = 'single_thread_impl.h'
@@ -83,15 +85,14 @@ def extract_and_compile(metadata, current_dir, temp_dir):
 
     # 根据框架调整编译命令
     if framework == 'OpenMP':
-        compile_command = f"g++ {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -fopenmp -DUSE_OPENMP"
+        compile_command = f"g++ -std=c++17 {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -fopenmp -DUSE_OPENMP"
         print("g++ OpenMP编译")
     elif framework == 'CUDA':
         main_cu_path = os.path.join(temp_test_folder_path, 'main.cu')
         compile_command = f"nvcc -std=c++17 {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart -DUSE_CUDA"
-        print(temp_dir)
         print("nvcc CUDA编译")
     elif framework == 'MPI':
-        compile_command = f"mpicxx {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -DUSE_MPI"
+        compile_command = f"mpicxx -std=c++17 {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -DUSE_MPI"
         print("mpicxx MPI编译")
     else:
         print("g++编译")
@@ -121,6 +122,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     else:
         print("测试代码运行成功！")
         print("输出结果：")
+        print(run_result.stderr)
         print(run_result.stdout)
 
     # 清理临时文件夹

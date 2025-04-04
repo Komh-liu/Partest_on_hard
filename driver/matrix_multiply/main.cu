@@ -3,6 +3,9 @@
 #include <chrono>
 #include <fstream>
 #include <vector>
+#include <string>
+#include <ctime>
+#include <filesystem>
 
 using Matrix = std::vector<int>;
 
@@ -14,7 +17,7 @@ Matrix load_matrix(const std::string& filename, int& rows, int& cols) {
         exit(1);
     }
 
-    file >> rows >> cols; // 读取矩阵的行数和列数
+    file >> rows >> cols; // 读取矩阵行数和列数
 
     Matrix matrix(rows * cols, 0); // 初始化为全零矩阵
 
@@ -46,12 +49,13 @@ void save_matrix(const Matrix& matrix, int rows, int cols, const std::string& fi
         for (int j = 0; j < cols; ++j) {
             int value = matrix[i * cols + j];
             if (value != 0) {
-                file << i << " " << j << " " <<  value << std::endl;
+                file << i << " " << j << " " << value << std::endl;
             }
         }
     }
 }
 
+// 比较两个文本文件是否相同
 bool compare_text_files(const std::string& file1, const std::string& file2) {
     // 打开两个文件
     std::ifstream f1(file1);
@@ -65,20 +69,81 @@ bool compare_text_files(const std::string& file1, const std::string& file2) {
 
     // 逐行读取并比较
     std::string line1, line2;
-    while (std::getline(f1, line1) && std::getline(f2, line2)) {
+    bool same = true;
+
+    while (true) {
+        std::getline(f1, line1);
+        std::getline(f2, line2);
+
+        // 检查是否同时到达文件末尾
+        if (f1.eof() && f2.eof()) {
+            break;
+        }
+
+        // 如果一个文件到达末尾而另一个没有，行数不同
+        if (f1.eof() != f2.eof()) {
+            std::cerr << "文件行数不同！" << std::endl;
+            same = false;
+            break;
+        }
+
+        // 比较当前行
         if (line1 != line2) {
-            // 如果发现不相同的行，返回 false
-            return false;
+            std::cerr << "文件内容不同！" << std::endl;
+            same = false;
+            break;
         }
     }
+    return same;
+}
 
-    // 如果两个文件行数不同，返回 false
-    if (f1.eof() != f2.eof()) {
-        return false;
+// 生成包含时间戳的文件名
+std::string generate_filename_with_timestamp(const std::string& base_filename) {
+    // 获取当前时间
+    std::time_t now = std::time(nullptr);
+    std::tm* now_tm = std::localtime(&now);
+
+    // 格式化时间戳
+    char timestamp_str[20];
+    std::strftime(timestamp_str, sizeof(timestamp_str), "%Y%m%d_%H%M%S", now_tm);
+
+    // 提取文件名（不包含路径）
+    std::filesystem::path path(base_filename);
+    std::string filename = path.filename().string();
+
+    // 生成新文件名
+    std::string new_filename = filename + "_" + timestamp_str + ".txt";
+
+    // 返回新文件的完整路径
+    return (path.parent_path() / new_filename).string();
+}
+
+// 将输入文件和输出文件的内容保存到新文件
+void save_combined_file(const std::string& input_file, const std::string& output_file, const std::string& combined_file) {
+    std::ofstream combined(combined_file);
+    if (!combined.is_open()) {
+        std::cerr << "Failed to open combined file: " << combined_file << std::endl;
+        exit(1);
     }
 
-    // 如果所有行都相同，返回 true
-    return true;
+    // 写入输入文件的内容
+    // combined << "Input File Content:\n";
+    std::ifstream input(input_file);
+    std::string line;
+    //while (std::getline(input, line)) {
+    //    combined << line << "\n";
+    //}
+    input.close();
+
+    // 写入输出文件的内容
+    //combined << "\nOutput File Content:\n";
+    std::ifstream output(output_file);
+    while (std::getline(output, line)) {
+        combined << line << "\n";
+    }
+    output.close();
+
+    combined.close();
 }
 
 int main(int argc, char* argv[]) {
@@ -93,7 +158,7 @@ int main(int argc, char* argv[]) {
     int N, M;
     Matrix A = load_matrix(input_file, N, M); // 加载矩阵
     Matrix result; // 初始化结果矩阵为空
-    result.resize(N * N , 0);
+    result.resize(N * N, 0);
     auto start = std::chrono::high_resolution_clock::now();
     matrix_multiply(A, N, M, result); // 统一函数调用
     auto end = std::chrono::high_resolution_clock::now();
@@ -102,11 +167,21 @@ int main(int argc, char* argv[]) {
     std::cout << "Time: " 
               << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
               << "ms\n";
+
+    // 保存结果到输出文件
     save_matrix(result, N, N, output_file);
-    //bool c_result = compare_text_files(input_file, output_file);
-    //if(c_result)
-    //    std::cout<<"Correct"<<std::endl;
-    //else
-    //    std::cout<<"Wrong"<<std::endl;
+
+    // 生成包含时间戳的文件名
+    std::string combined_file = generate_filename_with_timestamp(output_file);
+
+    // 保存输入文件和输出文件的内容到新文件
+    save_combined_file(input_file, output_file, combined_file);
+
+    //std::cout << "Combined file saved as: " << combined_file << std::endl;
+    bool c_result = compare_text_files(combined_file, output_file);
+    if(c_result)
+       std::cout<<"验证成功"<<std::endl;
+    else
+        std::cout<<"验证失败"<<std::endl;
     return 0;
 }
