@@ -56,9 +56,9 @@ def generate_code(config_path):
 
     # 可选框架列表
     available_frameworks = [
-        "Serial",
-        "OpenMP",
-        "MPI",
+        #"Serial",
+        #"OpenMP",
+        #"MPI",
         "CUDA",
     ]
 

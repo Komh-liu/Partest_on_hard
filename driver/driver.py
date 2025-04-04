@@ -117,8 +117,8 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     # 检查运行结果
     if run_result.returncode != 0:
         print("测试代码运行失败！")
-        print("错误信息：")
-        print(run_result.stderr)
+        # print("错误信息：")
+        # print(run_result.stderr)
     else:
         print("测试代码运行成功！")
         print("输出结果：")

@@ -10,12 +10,6 @@
               "threads": 16,
               "frequency": "3.6 GHz",
               "available": "True"
-            },
-            {
-              "cores": 4,
-              "threads": 8,
-              "frequency": "3.2 GHz",
-              "available": "True"
             }
           ],
           "gpu": {
@@ -27,7 +21,7 @@
             "available": "True"
           }
         },
-        "code": "#include <vector>\n#include <cuda_runtime.h>\n\nusing Array = std::vector<int>;\n\n__global__ void sum_kernel(int* arr, int n, int* result) {\n    extern __shared__ int sdata[];\n    int tid = threadIdx.x;\n    int i = blockIdx.x * blockDim.x + threadIdx.x;\n    sdata[tid] = (i < n) ? arr[i] : 0;\n    __syncthreads();\n\n    for (int s = blockDim.x / 2; s > 0; s >>= 1) {\n        if (tid < s) {\n            sdata[tid] += sdata[tid + s];\n        }\n        __syncthreads();\n    }\n\n    if (tid == 0) {\n        atomicAdd(result, sdata[0]);\n    }\n}\n\nint array_sum(const Array& arr) {\n    int n = arr.size();\n    int* d_arr;\n    int* d_result;\n    int h_result = 0;\n\n    cudaMalloc(&d_arr, n * sizeof(int));\n    cudaMalloc(&d_result, sizeof(int));\n    cudaMemcpy(d_arr, arr.data(), n * sizeof(int), cudaMemcpyHostToDevice);\n    cudaMemset(d_result, 0, sizeof(int));\n\n    int blockSize = 256;\n    int numBlocks = (n + blockSize - 1) / blockSize;\n    sum_kernel<<<numBlocks, blockSize, blockSize * sizeof(int)>>>(d_arr, n, d_result);\n\n    cudaMemcpy(&h_result, d_result, sizeof(int), cudaMemcpyDeviceToHost);\n\n    cudaFree(d_arr);\n    cudaFree(d_result);\n\n    return h_result;\n}",
+        "code": "#include <vector>\n#include <cuda_runtime.h>\n\nusing Array = std::vector<int>;\n\n__global__ void sum_kernel(const int* arr, int* block_sums, int n) {\n    extern __shared__ int sdata[];\n    int tid = threadIdx.x;\n    int bdim = blockDim.x;\n    int i = blockIdx.x * bdim + tid;\n    int stride = gridDim.x * bdim;\n    \n    sdata[tid] = 0;\n    while (i < n) {\n        sdata[tid] += arr[i];\n        i += stride;\n    }\n    __syncthreads();\n\n    for (int s = bdim/2; s > 0; s >>= 1) {\n        if (tid < s) {\n            sdata[tid] += sdata[tid + s];\n        }\n        __syncthreads();\n    }\n\n    if (tid == 0) {\n        block_sums[blockIdx.x] = sdata[0];\n    }\n}\n\nint array_sum(const Array& arr) {\n    const int* h_arr = arr.data();\n    int n = arr.size();\n    int* d_arr;\n    cudaMalloc(&d_arr, n * sizeof(int));\n    cudaMemcpy(d_arr, h_arr, n * sizeof(int), cudaMemcpyHostToDevice);\n\n    const int block_size = 256;\n    int grid_size = (n + block_size - 1) / block_size;\n    int max_blocks;\n    cudaDeviceGetAttribute(&max_blocks, cudaDevAttrMaxGridDimX, 0);\n    if (grid_size > max_blocks) grid_size = max_blocks;\n\n    int* d_blocks;\n    cudaMalloc(&d_blocks, grid_size * sizeof(int));\n    \n    sum_kernel<<<grid_size, block_size, block_size*sizeof(int)>>>(d_arr, d_blocks, n);\n    \n    std::vector<int> block_sums(grid_size);\n    cudaMemcpy(block_sums.data(), d_blocks, grid_size*sizeof(int), cudaMemcpyDeviceToHost);\n    \n    int total = 0;\n    for (int sum : block_sums) {\n        total += sum;\n    }\n    \n    cudaFree(d_arr);\n    cudaFree(d_blocks);\n    \n    return total;\n}",
         "framework": "CUDA"
       }
     },
@@ -41,12 +35,6 @@
               "threads": 16,
               "frequency": "3.6 GHz",
               "available": "True"
-            },
-            {
-              "cores": 4,
-              "threads": 8,
-              "frequency": "3.2 GHz",
-              "available": "True"
             }
           ],
           "gpu": {
@@ -58,7 +46,7 @@
             "available": "True"
           }
         },
-        "code": "#include <iostream>\n#include <vector>\n#include <cuda_runtime.h>\n\nusing Matrix = std::vector<int>;\n\n__global__ void matrixMultiplyKernel(const int* A, int N, int M, int* result) {\n    int row = blockIdx.y * blockDim.y + threadIdx.y;\n    int col = blockIdx.x * blockDim.x + threadIdx.x;\n    int sum = 0;\n\n    if (row < N && col < M) {\n        for (int k = 0; k < M; ++k) {\n            sum += A[row * M + k] * A[col * M + k];\n        }\n        result[row * M + col] = sum;\n    }\n}\n\nvoid matrix_multiply(const Matrix& A, int N, int M, Matrix& result) {\n    int* d_A;\n    int* d_result;\n\n    size_t size = N * M * sizeof(int);\n\n    cudaMalloc(&d_A, size);\n    cudaMalloc(&d_result, size);\n\n    cudaMemcpy(d_A, A.data(), size, cudaMemcpyHostToDevice);\n\n    dim3 threadsPerBlock(16, 16);\n    dim3 numBlocks((M + threadsPerBlock.x - 1) / threadsPerBlock.x, (N + threadsPerBlock.y - 1) / threadsPerBlock.y);\n\n    matrixMultiplyKernel<<<numBlocks, threadsPerBlock>>>(d_A, N, M, d_result);\n\n    cudaMemcpy(result.data(), d_result, size, cudaMemcpyDeviceToHost);\n\n    cudaFree(d_A);\n    cudaFree(d_result);\n}",
+        "code": "#include <vector>\n#include <cuda_runtime.h>\n\nusing Matrix = std::vector<int>;\n\n__global__ void matrix_multiply_kernel(const int* A, int* result, int N, int M) {\n    int i = blockIdx.x * blockDim.x + threadIdx.x;\n    int j = blockIdx.y * blockDim.y + threadIdx.y;\n\n    if (i < N && j < N) {\n        int sum = 0;\n        for (int k = 0; k < M; ++k) {\n            sum += A[i * M + k] * A[j * M + k];\n        }\n        result[i * N + j] = sum;\n    }\n}\n\nvoid matrix_multiply(const Matrix& A, int N, int M, Matrix& result) {\n    result.resize(N * N);\n    \n    int *d_A, *d_result;\n    cudaMalloc(&d_A, N * M * sizeof(int));\n    cudaMalloc(&d_result, N * N * sizeof(int));\n    \n    cudaMemcpy(d_A, A.data(), N * M * sizeof(int), cudaMemcpyHostToDevice);\n    \n    dim3 block(16, 16);\n    dim3 grid((N + block.x - 1) / block.x, (N + block.y - 1) / block.y);\n    \n    matrix_multiply_kernel<<<grid, block>>>(d_A, d_result, N, M);\n    \n    cudaMemcpy(result.data(), d_result, N * N * sizeof(int), cudaMemcpyDeviceToHost);\n    \n    cudaFree(d_A);\n    cudaFree(d_result);\n}",
         "framework": "CUDA"
       }
     },
@@ -72,12 +60,6 @@
               "threads": 16,
               "frequency": "3.6 GHz",
               "available": "True"
-            },
-            {
-              "cores": 4,
-              "threads": 8,
-              "frequency": "3.2 GHz",
-              "available": "True"
             }
           ],
           "gpu": {
@@ -89,7 +71,7 @@
             "available": "True"
           }
         },
-        "code": "#include <iostream>\n#include <cuda_runtime.h>\n\n__global__ void bfsKernel(int* visited, int* frontier, int* newFrontier, const int* offset, const int* edges, int numVertices, int* frontierSize) {\n    int idx = blockIdx.x * blockDim.x + threadIdx.x;\n    if (idx < *frontierSize) {\n        int node = frontier[idx];\n        for (int i = offset[node]; i < offset[node + 1]; ++i) {\n            int neighbor = edges[i];\n            if (!visited[neighbor]) {\n                int pos = atomicExch(&visited[neighbor], 1);\n                if (!pos) {\n                    int index = atomicAdd(newFrontier + numVertices, 1);\n                    newFrontier[index] = neighbor;\n                }\n            }\n        }\n    }\n}\n\nvoid bfs(const CUDAGraph& graph, int start) {\n    int numVertices = graph.numVertices;\n    int* d_visited, *d_frontier, *d_newFrontier, *d_offset, *d_edges, *d_frontierSize;\n    int h_frontier[numVertices], h_newFrontier[numVertices], h_visited[numVertices] = {0};\n\n    h_visited[start] = 1;\n    h_frontier[0] = start;\n    int frontierSize = 1;\n\n    cudaMalloc(&d_visited, numVertices * sizeof(int));\n    cudaMalloc(&d_frontier, numVertices * sizeof(int));\n    cudaMalloc(&d_newFrontier, numVertices * sizeof(int));\n    cudaMalloc(&d_offset, (numVertices + 1) * sizeof(int));\n    cudaMalloc(&d_edges, graph.numEdges * sizeof(int));\n    cudaMalloc(&d_frontierSize, sizeof(int));\n\n    cudaMemcpy(d_visited, h_visited, numVertices * sizeof(int), cudaMemcpyHostToDevice);\n    cudaMemcpy(d_frontier, h_frontier, numVertices * sizeof(int), cudaMemcpyHostToDevice);\n    cudaMemcpy(d_offset, graph.offset, (numVertices + 1) * sizeof(int), cudaMemcpyHostToDevice);\n    cudaMemcpy(d_edges, graph.edges, graph.numEdges * sizeof(int), cudaMemcpyHostToDevice);\n\n    dim3 blockSize(256);\n    dim3 gridSize((numVertices + blockSize.x - 1) / blockSize.x);\n\n    while (frontierSize > 0) {\n        cudaMemcpy(d_frontierSize, &frontierSize, sizeof(int), cudaMemcpyHostToDevice);\n        cudaMemset(d_newFrontier + numVertices, 0, sizeof(int));\n        bfsKernel<<<gridSize, blockSize>>>(d_visited, d_frontier, d_newFrontier, d_offset, d_edges, numVertices, d_frontierSize);\n        cudaMemcpy(h_frontier, d_frontier, numVertices * sizeof(int), cudaMemcpyDeviceToHost);\n        cudaMemcpy(h_newFrontier, d_newFrontier, numVertices * sizeof(int), cudaMemcpyDeviceToHost);\n        cudaMemcpy(&frontierSize, d_frontierSize, sizeof(int), cudaMemcpyDeviceToHost);\n\n        for (int i = 0; i < frontierSize; ++i) {\n            std::cout << h_frontier[i] << \" \";\n        }\n\n        std::swap(h_frontier, h_newFrontier);\n    }\n\n    cudaFree(d_visited);\n    cudaFree(d_frontier);\n    cudaFree(d_newFrontier);\n    cudaFree(d_offset);\n    cudaFree(d_edges);\n    cudaFree(d_frontierSize);\n}",
+        "code": "#include <cuda_runtime.h>\n#include <stdio.h>\n#include <algorithm>\n\n__global__ void bfs_kernel(const CUDAGraph graph, const int* current, int current_size, int* visited, int* next, int* next_size) {\n    int idx = blockIdx.x * blockDim.x + threadIdx.x;\n    if (idx >= current_size) return;\n\n    int u = current[idx];\n    int start_edge = graph.offset[u];\n    int end_edge = graph.offset[u + 1];\n\n    for (int i = start_edge; i < end_edge; ++i) {\n        int v = graph.edges[i];\n        if (atomicCAS(&visited[v], 0, 1) == 0) {\n            int pos = atomicAdd(next_size, 1);\n            next[pos] = v;\n        }\n    }\n}\n\nvoid bfs(const CUDAGraph& graph, int start) {\n    int *d_visited;\n    cudaMalloc(&d_visited, graph.numVertices * sizeof(int));\n    cudaMemset(d_visited, 0, graph.numVertices * sizeof(int));\n    int one = 1;\n    cudaMemcpy(d_visited + start, &one, sizeof(int), cudaMemcpyHostToDevice);\n\n    int max_nodes = graph.numVertices;\n    int *d_current, *d_next;\n    cudaMalloc(&d_current, max_nodes * sizeof(int));\n    cudaMalloc(&d_next, max_nodes * sizeof(int));\n\n    int current_size = 1;\n    cudaMemcpy(d_current, &start, sizeof(int), cudaMemcpyHostToDevice);\n\n    int *d_next_size;\n    cudaMalloc(&d_next_size, sizeof(int));\n\n    printf(\"%d \", start);\n\n    while (current_size > 0) {\n        int zero = 0;\n        cudaMemcpy(d_next_size, &zero, sizeof(int), cudaMemcpyHostToDevice);\n\n        dim3 block(256);\n        dim3 grid((current_size + block.x - 1) / block.x);\n        bfs_kernel<<<grid, block>>>(graph, d_current, current_size, d_visited, d_next, d_next_size);\n        cudaDeviceSynchronize();\n\n        int next_size;\n        cudaMemcpy(&next_size, d_next_size, sizeof(int), cudaMemcpyDeviceToHost);\n\n        if (next_size == 0) break;\n\n        int* h_next = new int[next_size];\n        cudaMemcpy(h_next, d_next, next_size * sizeof(int), cudaMemcpyDeviceToHost);\n        for (int i = 0; i < next_size; ++i) {\n            printf(\"%d \", h_next[i]);\n        }\n        delete[] h_next;\n\n        std::swap(d_current, d_next);\n        current_size = next_size;\n    }\n\n    cudaFree(d_visited);\n    cudaFree(d_current);\n    cudaFree(d_next);\n    cudaFree(d_next_size);\n}",
         "framework": "CUDA"
       }
     }

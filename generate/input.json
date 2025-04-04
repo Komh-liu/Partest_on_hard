@@ -6,12 +6,6 @@
                 "threads": 16,
                 "frequency": "3.6 GHz",
                 "available": "True"
-            },
-            {
-                "cores": 4,
-                "threads": 8,
-                "frequency": "3.2 GHz",
-                "available": "True"
             }
         ],
         "gpu": {
