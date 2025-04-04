@@ -7,18 +7,26 @@ import os
 def check_available_devices(hardware):
     # 检查可用设备
     available_devices = []
-    if hardware.get("cpu", {}).get("available") == "True":
-        available_devices.append({
-            "type": "CPU",
-            "cores": hardware["cpu"].get("cores", "N/A"),
-            "cpu_memory": hardware.get("resources", {}).get("cpu_memory", "N/A")
-        })
+    
+    # 检查多个CPU
+    if "cpus" in hardware:
+        for cpu in hardware["cpus"]:
+            if cpu.get("available") == "True":
+                available_devices.append({
+                    "type": "CPU",
+                    "cores": cpu.get("cores", "N/A"),
+                    "threads": cpu.get("threads", "N/A"),
+                    "frequency": cpu.get("frequency", "N/A")
+                })
+    
+    # 检查GPU
     if hardware.get("gpu", {}).get("available") == "True":
         available_devices.append({
             "type": "GPU",
             "cores": hardware["gpu"].get("cuda_cores", "N/A"),
             "memory": hardware["gpu"].get("memory", {})
         })
+    
     return available_devices
 
 
@@ -34,14 +42,24 @@ def generate_code(config_path):
 
     # 检查可用设备
     available_devices = check_available_devices(config["hardware"])
-    available_devices_info = ", ".join([f"{device['type']}（核心数/线程数: {device.get('cores', 'N/A')}，内存: {device['memory'].get('size', 'N/A') if device['type'] == 'GPU' else device.get('cpu_memory', 'N/A')})" for device in available_devices])
+    
+    # 构建可用设备信息
+    available_devices_info = []
+    for device in available_devices:
+        if device["type"] == "CPU":
+            device_info = f"CPU（核心数: {device['cores']}, 线程数: {device['threads']}, 频率: {device['frequency']})"
+        else:
+            device_info = f"GPU（CUDA核心数: {device['cores']}, 显存: {device['memory'].get('size', 'N/A')})"
+        available_devices_info.append(device_info)
+    
+    available_devices_info = ", ".join(available_devices_info)
 
     # 可选框架列表
     available_frameworks = [
-        #"Serial",
-        #"OpenMP",
+        "Serial",
+        "OpenMP",
         "MPI",
-        #"CUDA",
+        "CUDA",
     ]
 
     # 遍历所有任务
@@ -49,9 +67,8 @@ def generate_code(config_path):
         # 构建系统提示词
         system_prompt = f"""你是一个C++专家，需要根据以下配置生成优化的并行计算代码：
         - 任务类型: {task['type']}
-        - 硬件配置: CPU核心数: {config['hardware'].get('cpu', {}).get('cores', 'N/A')}, GPU显存: {config['hardware'].get('gpu', {}).get('memory', {}).get('size', 'N/A')}
-        - 可用设备: {available_devices_info}
-        - 可选框架: {', '.join(available_frameworks)}
+        - 硬件配置: {available_devices_info}
+        - 可用框架: {', '.join(available_frameworks)}
         请根据硬件信息和任务需求，从可选框架中选择最合适的一个来生成代码。
         """
 
@@ -91,7 +108,7 @@ def generate_code(config_path):
             messages=[
                 {
                     "role": "system",
-                    "content": f"请严格按以下格式输出代码：\n1. 代码必须用\n```cpp\n开始\n2. 用\n```\n结束\n3. 中间只包含C++代码\n4. 只输出所选框架对应的函数实现，不输出prompt给出的结构体定义\n5. 禁止输出任何解释性文字或注释\n6. 在代码前指定所选择的框架（例如：选择的框架：<框架名称>）\n7. 尽可能根据硬件条件减小资源消耗"
+                    "content": f"请严格按以下格式输出代码：\n1. 代码必须用\n```cpp\n开始\n2. 用\n```\n结束\n3. 中间只包含C++代码\n4. 只输出所选框架对应的函数实现，不输出prompt给出的结构体定义,如果框架是mpi需要先进行MPI_INIT\n5. 禁止输出任何解释性文字或注释\n6. 在代码前指定所选择的框架（例如：选择的框架：<框架名称>）\n7. 尽可能根据硬件条件减小资源消耗"
                 },
                 *messages
             ],
