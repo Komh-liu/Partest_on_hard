@@ -74,7 +74,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     for line in lines:
         if line.startswith("#include"):
             if not found_include:
-                new_lines.append(f'{include_line}\n')
+                # new_lines.append(f'{include_line}\n')
                 found_include = True
         new_lines.append(line)
 
@@ -88,6 +88,7 @@ def extract_and_compile(metadata, current_dir, temp_dir):
     elif framework == 'CUDA':
         main_cu_path = os.path.join(temp_test_folder_path, 'main.cu')
         compile_command = f"nvcc -std=c++17 {main_cu_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -lcudart -DUSE_CUDA"
+        print(temp_dir)
         print("nvcc CUDA编译")
     elif framework == 'MPI':
         compile_command = f"mpicxx {main_cpp_path} -o {os.path.join(temp_dir, 'main')} -I{temp_dir} -DUSE_MPI"

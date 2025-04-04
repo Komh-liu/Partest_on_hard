@@ -41,6 +41,17 @@
                 "CUDA": "// CUDA 适合使用一维数组\nusing Matrix = std::vector<int>;",
                 "other": "// 通用二维向量矩阵表示\nusing Matrix = std::vector<std::vector<int>>;"
             }
+        },
+        {
+            "type": "graph_bfs",
+            "function_signatures": {
+                "CUDA": "void bfs(const CUDAGraph& graph, int start);//start为起始节点",
+                "other": "void bfs(const Graph& graph, int start);//start为起始节点"
+            },
+            "contexts": {
+                "CUDA": "struct CUDAGraph {\n\tint numVertices;\n\tint numEdges;\n\tint* offset;    // 顶点邻接表偏移数组\n\tint* edges;     // 邻接顶点数据数组\n};//结构已在其他文件定义，不要在代码中输出",
+                "other": "using Graph = std::vector<std::vector<int>>;"
+            }
         }
     ]
 }
