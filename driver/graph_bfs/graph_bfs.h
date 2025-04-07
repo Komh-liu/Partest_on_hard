@@ -19,7 +19,7 @@ struct CUDAGraph {
 };
 #endif // CUDA_GRAPH_DEFINED
 
-void bfs(const CUDAGraph& graph, int start); 
+void bfs(const CUDAGraph& graph, int start,std::vector<int> & result); 
 #else
 // 定义图的邻接表表示
 struct Graph {
@@ -28,7 +28,7 @@ struct Graph {
     int* offset;    // 顶点邻接表偏移数组
     int* edges;     // 邻接顶点数据数组
 };
-void bfs(const Graph& graph, int start);
+void bfs(const Graph& graph, int start,std::vector<int> & result);
 #endif
 
 // 根据不同编译选项包含实现
