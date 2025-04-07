@@ -56,10 +56,10 @@ def generate_code(config_path):
 
     # 可选框架列表
     available_frameworks = [
-        #"Serial",
-        #"OpenMP",
-        #"MPI",
-        "CUDA",
+        "Serial",
+        "OpenMP",
+        "MPI",
+        # "CUDA",
     ]
 
     # 遍历所有任务

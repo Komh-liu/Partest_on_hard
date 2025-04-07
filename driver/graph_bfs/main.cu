@@ -4,6 +4,25 @@
 #include <algorithm>
 #include <chrono>
 
+std::vector<int> loadFileToVector(const std::string& filename) {
+    std::vector<int> result;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "无法打开文件: " << filename << std::endl;
+        return result;
+    }
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        int num;
+        while (iss >> num) {
+            result.push_back(num);
+        }
+    }
+    file.close();
+    return result;
+}
+
 CUDAGraph loadCUDAGraphFromFile(const std::string& filename) {
     std::ifstream file(filename);
     CUDAGraph graph;
@@ -63,11 +82,12 @@ int main(int argc, char* argv[]) {
 
     if (graph.numVertices > 0) {
         int bfs_start_vertex = 0; // 修改变量名以避免冲突
-        std::cout << "CUDA BFS starting from vertex " << bfs_start_vertex << ":\n";
-
+        std::cout << "BFS starting from vertex " << bfs_start_vertex << ":\n";
+        std::vector<int> bfs_result;
+        std::vector<int> result = loadFileToVector(result_file);
         // 时间测量部分
         auto time_start = std::chrono::high_resolution_clock::now(); // 修改变量名
-        bfs(graph, bfs_start_vertex);
+        bfs(graph, bfs_start_vertex,bfs_result);
         auto time_end = std::chrono::high_resolution_clock::now(); // 修改变量名
 
         // 清理内存
@@ -78,6 +98,8 @@ int main(int argc, char* argv[]) {
         std::cout << "Time: " 
                   << std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start).count()
                   << "ms\n";
+        if(result == bfs_result)
+            std::cout << "验证成功";
     }
     return 0;
 }

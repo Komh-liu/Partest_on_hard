@@ -18,11 +18,11 @@
               "size": "12 GB",
               "type": "GDDR6"
             },
-            "available": "True"
+            "available": "False"
           }
         },
-        "code": "#include <vector>\n#include <cuda_runtime.h>\n\nusing Array = std::vector<int>;\n\n__global__ void sum_kernel(const int* arr, int* block_sums, int n) {\n    extern __shared__ int sdata[];\n    int tid = threadIdx.x;\n    int bdim = blockDim.x;\n    int i = blockIdx.x * bdim + tid;\n    int stride = gridDim.x * bdim;\n    \n    sdata[tid] = 0;\n    while (i < n) {\n        sdata[tid] += arr[i];\n        i += stride;\n    }\n    __syncthreads();\n\n    for (int s = bdim/2; s > 0; s >>= 1) {\n        if (tid < s) {\n            sdata[tid] += sdata[tid + s];\n        }\n        __syncthreads();\n    }\n\n    if (tid == 0) {\n        block_sums[blockIdx.x] = sdata[0];\n    }\n}\n\nint array_sum(const Array& arr) {\n    const int* h_arr = arr.data();\n    int n = arr.size();\n    int* d_arr;\n    cudaMalloc(&d_arr, n * sizeof(int));\n    cudaMemcpy(d_arr, h_arr, n * sizeof(int), cudaMemcpyHostToDevice);\n\n    const int block_size = 256;\n    int grid_size = (n + block_size - 1) / block_size;\n    int max_blocks;\n    cudaDeviceGetAttribute(&max_blocks, cudaDevAttrMaxGridDimX, 0);\n    if (grid_size > max_blocks) grid_size = max_blocks;\n\n    int* d_blocks;\n    cudaMalloc(&d_blocks, grid_size * sizeof(int));\n    \n    sum_kernel<<<grid_size, block_size, block_size*sizeof(int)>>>(d_arr, d_blocks, n);\n    \n    std::vector<int> block_sums(grid_size);\n    cudaMemcpy(block_sums.data(), d_blocks, grid_size*sizeof(int), cudaMemcpyDeviceToHost);\n    \n    int total = 0;\n    for (int sum : block_sums) {\n        total += sum;\n    }\n    \n    cudaFree(d_arr);\n    cudaFree(d_blocks);\n    \n    return total;\n}",
-        "framework": "CUDA"
+        "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    #pragma omp parallel for reduction(+:sum) num_threads(16)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
+        "framework": "OpenMP"
       }
     },
     {
@@ -43,11 +43,11 @@
               "size": "12 GB",
               "type": "GDDR6"
             },
-            "available": "True"
+            "available": "False"
           }
         },
-        "code": "#include <vector>\n#include <cuda_runtime.h>\n\nusing Matrix = std::vector<int>;\n\n__global__ void matrix_multiply_kernel(const int* A, int* result, int N, int M) {\n    int i = blockIdx.x * blockDim.x + threadIdx.x;\n    int j = blockIdx.y * blockDim.y + threadIdx.y;\n\n    if (i < N && j < N) {\n        int sum = 0;\n        for (int k = 0; k < M; ++k) {\n            sum += A[i * M + k] * A[j * M + k];\n        }\n        result[i * N + j] = sum;\n    }\n}\n\nvoid matrix_multiply(const Matrix& A, int N, int M, Matrix& result) {\n    result.resize(N * N);\n    \n    int *d_A, *d_result;\n    cudaMalloc(&d_A, N * M * sizeof(int));\n    cudaMalloc(&d_result, N * N * sizeof(int));\n    \n    cudaMemcpy(d_A, A.data(), N * M * sizeof(int), cudaMemcpyHostToDevice);\n    \n    dim3 block(16, 16);\n    dim3 grid((N + block.x - 1) / block.x, (N + block.y - 1) / block.y);\n    \n    matrix_multiply_kernel<<<grid, block>>>(d_A, d_result, N, M);\n    \n    cudaMemcpy(result.data(), d_result, N * N * sizeof(int), cudaMemcpyDeviceToHost);\n    \n    cudaFree(d_A);\n    cudaFree(d_result);\n}",
-        "framework": "CUDA"
+        "code": "#include <vector>\n#include <omp.h>\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    #pragma omp parallel for\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < n; ++j) {\n            int sum = 0;\n            for (int k = 0; k < n; ++k) {\n                sum += A[i][k] * A[j][k];\n            }\n            result[i][j] = sum;\n        }\n    }\n}",
+        "framework": "OpenMP"
       }
     },
     {
@@ -68,11 +68,11 @@
               "size": "12 GB",
               "type": "GDDR6"
             },
-            "available": "True"
+            "available": "False"
           }
         },
-        "code": "#include <cuda_runtime.h>\n#include <stdio.h>\n#include <algorithm>\n\n__global__ void bfs_kernel(const CUDAGraph graph, const int* current, int current_size, int* visited, int* next, int* next_size) {\n    int idx = blockIdx.x * blockDim.x + threadIdx.x;\n    if (idx >= current_size) return;\n\n    int u = current[idx];\n    int start_edge = graph.offset[u];\n    int end_edge = graph.offset[u + 1];\n\n    for (int i = start_edge; i < end_edge; ++i) {\n        int v = graph.edges[i];\n        if (atomicCAS(&visited[v], 0, 1) == 0) {\n            int pos = atomicAdd(next_size, 1);\n            next[pos] = v;\n        }\n    }\n}\n\nvoid bfs(const CUDAGraph& graph, int start) {\n    int *d_visited;\n    cudaMalloc(&d_visited, graph.numVertices * sizeof(int));\n    cudaMemset(d_visited, 0, graph.numVertices * sizeof(int));\n    int one = 1;\n    cudaMemcpy(d_visited + start, &one, sizeof(int), cudaMemcpyHostToDevice);\n\n    int max_nodes = graph.numVertices;\n    int *d_current, *d_next;\n    cudaMalloc(&d_current, max_nodes * sizeof(int));\n    cudaMalloc(&d_next, max_nodes * sizeof(int));\n\n    int current_size = 1;\n    cudaMemcpy(d_current, &start, sizeof(int), cudaMemcpyHostToDevice);\n\n    int *d_next_size;\n    cudaMalloc(&d_next_size, sizeof(int));\n\n    printf(\"%d \", start);\n\n    while (current_size > 0) {\n        int zero = 0;\n        cudaMemcpy(d_next_size, &zero, sizeof(int), cudaMemcpyHostToDevice);\n\n        dim3 block(256);\n        dim3 grid((current_size + block.x - 1) / block.x);\n        bfs_kernel<<<grid, block>>>(graph, d_current, current_size, d_visited, d_next, d_next_size);\n        cudaDeviceSynchronize();\n\n        int next_size;\n        cudaMemcpy(&next_size, d_next_size, sizeof(int), cudaMemcpyDeviceToHost);\n\n        if (next_size == 0) break;\n\n        int* h_next = new int[next_size];\n        cudaMemcpy(h_next, d_next, next_size * sizeof(int), cudaMemcpyDeviceToHost);\n        for (int i = 0; i < next_size; ++i) {\n            printf(\"%d \", h_next[i]);\n        }\n        delete[] h_next;\n\n        std::swap(d_current, d_next);\n        current_size = next_size;\n    }\n\n    cudaFree(d_visited);\n    cudaFree(d_current);\n    cudaFree(d_next);\n    cudaFree(d_next_size);\n}",
-        "framework": "CUDA"
+        "code": "#include <vector>\n#include <atomic>\n#include <algorithm>\n#include <omp.h>\n\nvoid bfs(const Graph& graph, int start, std::vector<int>& result) {\n    std::vector<char> visited(graph.numVertices, 0);\n    std::vector<int> current, next;\n    \n    if (start < 0 || start >= graph.numVertices) return;\n    visited[start] = 1;\n    result.push_back(start);\n    current.push_back(start);\n\n    while (!current.empty()) {\n        next.clear();\n        #pragma omp parallel\n        {\n            std::vector<int> next_local;\n            #pragma omp for\n            for (size_t i = 0; i < current.size(); ++i) {\n                int u = current[i];\n                for (int j = graph.offset[u]; j < graph.offset[u+1]; ++j) {\n                    int v = graph.edges[j];\n                    if (!__atomic_load_n(&visited[v], __ATOMIC_RELAXED)) {\n                        if (__atomic_exchange_n(&visited[v], 1, __ATOMIC_RELAXED) == 0) {\n                            next_local.push_back(v);\n                        }\n                    }\n                }\n            }\n            #pragma omp critical\n            next.insert(next.end(), next_local.begin(), next_local.end());\n        }\n        std::sort(next.begin(), next.end());\n        result.insert(result.end(), next.begin(), next.end());\n        current.swap(next);\n    }\n    \n    for (int node : result) {\n        printf(\"%d \", node);\n    }\n    printf(\"\\n\");\n}",
+        "framework": "OpenMP"
       }
     }
   ]

@@ -14,7 +14,7 @@ CONFIG = {
             "compute_capability": 8.0,  # CUDA compute capability
             "memory": "16GB",
             "threads_per_block": 1024,
-            "available": True,
+            "available": False,
         }
     }
 }

@@ -22,7 +22,12 @@ struct CUDAGraph {
 void bfs(const CUDAGraph& graph, int start); 
 #else
 // 定义图的邻接表表示
-using Graph = std::vector<std::vector<int>>;
+struct Graph {
+    int numVertices;
+    int numEdges;
+    int* offset;    // 顶点邻接表偏移数组
+    int* edges;     // 邻接顶点数据数组
+};
 void bfs(const Graph& graph, int start);
 #endif
 
