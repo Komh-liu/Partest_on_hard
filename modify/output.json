@@ -1,0 +1,205 @@
+{
+    "tasks": [
+      {
+        "metadata": {
+          "task_type": "array_sum",
+          "hardware": {
+            "cpus": [
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              }
+            ],
+            "gpu": {
+              "cuda_cores": 10496,
+              "memory": {
+                "size": "24 GB",
+                "type": "GDDR6X"
+              },
+              "available": "True"
+            }
+          },
+          "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    #pragma omp parallel for reduction(+:sum) num_threads(16)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
+          "framework": "OpenMP"
+        }
+      },
+      {
+        "metadata": {
+          "task_type": "matrix_multiply",
+          "hardware": {
+            "cpus": [
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              }
+            ],
+            "gpu": {
+              "cuda_cores": 10496,
+              "memory": {
+                "size": "24 GB",
+                "type": "GDDR6X"
+              },
+              "available": "True"
+            }
+          },
+          "code": "#include <vector>\n#include <omp.h>\n\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    #pragma omp parallel for schedule(static)\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < n; ++j) {\n            result[i][j] = 0;\n            for (int k = 0; k < n; ++k) {\n                result[i][j] += A[i][k] * A[j][k];\n            }\n        }\n    }\n}",
+          "framework": "OpenMP"
+        }
+      },
+      {
+        "metadata": {
+          "task_type": "graph_bfs",
+          "hardware": {
+            "cpus": [
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              },
+              {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+              }
+            ],
+            "gpu": {
+              "cuda_cores": 10496,
+              "memory": {
+                "size": "24 GB",
+                "type": "GDDR6X"
+              },
+              "available": "True"
+            }
+          },
+          "code": "#include <vector>\n#include <queue>\n#include <omp.h>\n\nvoid bfs(const Graph& graph, int start, std::vector<int>& result) {\n    std::vector<bool> visited(graph.numVertices, false);\n    std::queue<int> q;\n    q.push(start);\n    visited[start] = true;\n\n    while (!q.empty()) {\n        int current = q.front();\n        q.pop();\n        result.push_back(current);\n\n        int startEdge = graph.offset[current];\n        int endEdge = (current == graph.numVertices - 1) ? graph.numEdges : graph.offset[current + 1];\n\n        #pragma omp parallel for\n        for (int i = startEdge; i < endEdge; ++i) {\n            int neighbor = graph.edges[i];\n            if (!visited[neighbor]) {\n                #pragma omp critical\n                {\n                    if (!visited[neighbor]) {\n                        visited[neighbor] = true;\n                        q.push(neighbor);\n                    }\n                }\n            }\n        }\n    }\n\n    for (int node : result) {\n        std::cout << node << \" \";\n    }\n    std::cout << std::endl;\n}",
+          "framework": "OpenMP"
+        }
+      }
+    ]
+  }
