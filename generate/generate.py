@@ -69,7 +69,7 @@ def generate_code(config_path):
         - 任务类型: {task['type']}
         - 硬件配置: {available_devices_info}
         - 可用框架: {', '.join(available_frameworks)}
-        请根据硬件信息和任务需求，从可选框架中选择最合适的一个来生成代码。
+        请根据硬件信息和任务需求，从可选框架中选择最合适的一个来生成代码，生成的代码尽可能利用所有硬件资源同时降低内存开销。
         """
 
         # 构建用户提示词

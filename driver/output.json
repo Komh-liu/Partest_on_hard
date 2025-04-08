@@ -13,16 +13,20 @@
             }
           ],
           "gpu": {
-            "cuda_cores": 3584,
+            "cuda_cores": 10496,
             "memory": {
-              "size": "12 GB",
-              "type": "GDDR6"
+              "size": "24 GB",
+              "type": "GDDR6X"
             },
-            "available": "False"
+            "available": "True"
           }
         },
-        "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    #pragma omp parallel for reduction(+:sum) num_threads(16)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
+        "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    // MODIFIED: 将线程数从16减少到8，以匹配物理核心数，避免线程超额订阅\n    #pragma omp parallel for reduction(+:sum) num_threads(8)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
         "framework": "OpenMP"
+      },
+      "modification_record": {
+        "requirements": "减少OpenMP线程数以适应物理核心数",
+        "error_info": "线程超额订阅导致性能下降"
       }
     },
     {
@@ -38,16 +42,20 @@
             }
           ],
           "gpu": {
-            "cuda_cores": 3584,
+            "cuda_cores": 10496,
             "memory": {
-              "size": "12 GB",
-              "type": "GDDR6"
+              "size": "24 GB",
+              "type": "GDDR6X"
             },
-            "available": "False"
+            "available": "True"
           }
         },
-        "code": "#include <vector>\n#include <omp.h>\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    #pragma omp parallel for\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < n; ++j) {\n            int sum = 0;\n            for (int k = 0; k < n; ++k) {\n                sum += A[i][k] * A[j][k];\n            }\n            result[i][j] = sum;\n        }\n    }\n}",
+        "code": "#include <vector>\n#include <omp.h>\n\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    // MODIFIED: 添加边界检查，防止空矩阵导致的段错误\n    if (n == 0) {\n        return;\n    }\n    #pragma omp parallel for schedule(static)\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < n; ++j) {\n            result[i][j] = 0;\n            for (int k = 0; k < n; ++k) {\n                result[i][j] += A[i][k] * A[j][k];\n            }\n        }\n    }\n}",
         "framework": "OpenMP"
+      },
+      "modification_record": {
+        "requirements": "添加边界检查防止矩阵越界",
+        "error_info": "当输入空矩阵时出现段错误"
       }
     },
     {
@@ -63,16 +71,20 @@
             }
           ],
           "gpu": {
-            "cuda_cores": 3584,
+            "cuda_cores": 10496,
             "memory": {
-              "size": "12 GB",
-              "type": "GDDR6"
+              "size": "24 GB",
+              "type": "GDDR6X"
             },
-            "available": "False"
+            "available": "True"
           }
         },
-        "code": "#include <vector>\n#include <atomic>\n#include <algorithm>\n#include <omp.h>\n\nvoid bfs(const Graph& graph, int start, std::vector<int>& result) {\n    std::vector<char> visited(graph.numVertices, 0);\n    std::vector<int> current, next;\n    \n    if (start < 0 || start >= graph.numVertices) return;\n    visited[start] = 1;\n    result.push_back(start);\n    current.push_back(start);\n\n    while (!current.empty()) {\n        next.clear();\n        #pragma omp parallel\n        {\n            std::vector<int> next_local;\n            #pragma omp for\n            for (size_t i = 0; i < current.size(); ++i) {\n                int u = current[i];\n                for (int j = graph.offset[u]; j < graph.offset[u+1]; ++j) {\n                    int v = graph.edges[j];\n                    if (!__atomic_load_n(&visited[v], __ATOMIC_RELAXED)) {\n                        if (__atomic_exchange_n(&visited[v], 1, __ATOMIC_RELAXED) == 0) {\n                            next_local.push_back(v);\n                        }\n                    }\n                }\n            }\n            #pragma omp critical\n            next.insert(next.end(), next_local.begin(), next_local.end());\n        }\n        std::sort(next.begin(), next.end());\n        result.insert(result.end(), next.begin(), next.end());\n        current.swap(next);\n    }\n    \n    for (int node : result) {\n        printf(\"%d \", node);\n    }\n    printf(\"\\n\");\n}",
+        "code": "#include <vector>\n#include <queue>\n#include <omp.h>\n#include <atomic> // MODIFIED: 引入atomic头文件\n\nvoid bfs(const Graph& graph, int start, std::vector<int>& result) {\n    std::vector<bool> visited(graph.numVertices, false);\n    std::queue<int> q;\n    q.push(start);\n    visited[start] = true;\n\n    while (!q.empty()) {\n        int current = q.front();\n        q.pop();\n        result.push_back(current);\n\n        int startEdge = graph.offset[current];\n        int endEdge = (current == graph.numVertices - 1) ? graph.numEdges : graph.offset[current + 1];\n\n        #pragma omp parallel for\n        for (int i = startEdge; i < endEdge; ++i) {\n            int neighbor = graph.edges[i];\n            if (!visited[neighbor]) {\n                // MODIFIED: 使用原子操作替换test_and_set\n                bool expected = false;\n                if (std::atomic_compare_exchange_strong(&visited[neighbor], &expected, true)) {\n                    #pragma omp critical\n                    {\n                        q.push(neighbor);\n                    }\n                }\n            }\n        }\n    }\n\n    for (int node : result) {\n        std::cout << node << \" \";\n    }\n    std::cout << std::endl;\n}",
         "framework": "OpenMP"
+      },
+      "modification_record": {
+        "requirements": "使用原子操作替换test_and_set以提高性能",
+        "error_info": "访存冲突导致结果不一致"
       }
     }
   ]

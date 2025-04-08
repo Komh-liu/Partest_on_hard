@@ -1,0 +1,19 @@
+{
+    "tasks": [
+      {
+        "task_type": "array_sum",  
+        "requirements": "减少OpenMP线程数以适应物理核心数",
+        "errors": "线程超额订阅导致性能下降"
+      },
+      {
+        "task_type": "matrix_multiply",
+        "requirements": "添加边界检查防止矩阵越界",
+        "errors": "当输入空矩阵时出现段错误"
+      },
+      {
+        "task_type": "graph_bfs",
+        "requirements": "使用原子操作替换test_and_set以提高性能",
+        "errors": "访存冲突导致结果不一致"
+      }
+    ]
+  }
