@@ -6,20 +6,62 @@
                 "threads": 16,
                 "frequency": "3.6 GHz",
                 "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
+            },
+            {
+                "cores": 8,
+                "threads": 16,
+                "frequency": "3.6 GHz",
+                "available": "True"
             }
         ],
         "gpu": {
-            "cuda_cores": 3584,
+            "cuda_cores": 10496,
             "memory": {
-                "size": "12 GB",
-                "type": "GDDR6"
+                "size": "24 GB",
+                "type": "GDDR6X"
             },
-            "available": "False"
+            "available": "True"
         }
     },
     "resources": {
         "cpu_memory": "16 GB",
-        "gpu_memory": "12 GB"
+        "gpu_memory": "24 GB"
     },
     "tasks": [
         {
