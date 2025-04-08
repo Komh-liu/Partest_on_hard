@@ -1,0 +1,19 @@
+{
+    "tasks": [
+      {
+        "task_type": "array_sum",  
+        "requirements": "None",
+        "errors": "None"
+      },
+      {
+        "task_type": "matrix_multiply",
+        "requirements": "None",
+        "errors": "None"
+      },
+      {
+        "task_type": "graph_bfs",
+        "requirements": "内存占用过高，降低内存占用，可以增加CPU的使用",
+        "errors": "None"
+      }
+    ]
+  }

@@ -10,61 +10,23 @@
                 "threads": 16,
                 "frequency": "3.6 GHz",
                 "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
               }
             ],
             "gpu": {
-              "cuda_cores": 10496,
+              "cuda_cores": 3584,
               "memory": {
-                "size": "24 GB",
-                "type": "GDDR6X"
+                "size": "12 GB",
+                "type": "GDDR6"
               },
               "available": "True"
             }
           },
-          "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    #pragma omp parallel for reduction(+:sum) num_threads(16)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
+          "code": "#include <vector>\n#include <omp.h>\n\nusing Array = std::vector<int>;\n\nint array_sum(const Array& arr) {\n    int sum = 0;\n    // MODIFIED: Specify the number of threads to use, based on available hardware\n    #pragma omp parallel for reduction(+:sum) num_threads(16)\n    for (size_t i = 0; i < arr.size(); ++i) {\n        sum += arr[i];\n    }\n    return sum;\n}",
           "framework": "OpenMP"
+        },
+        "modification_record": {
+          "requirements": "none",
+          "error_info": ""
         }
       },
       {
@@ -77,61 +39,23 @@
                 "threads": 16,
                 "frequency": "3.6 GHz",
                 "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
               }
             ],
             "gpu": {
-              "cuda_cores": 10496,
+              "cuda_cores": 3584,
               "memory": {
-                "size": "24 GB",
-                "type": "GDDR6X"
+                "size": "12 GB",
+                "type": "GDDR6"
               },
               "available": "True"
             }
           },
-          "code": "#include <vector>\n#include <omp.h>\n\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    #pragma omp parallel for schedule(static)\n    for (int i = 0; i < n; ++i) {\n        for (int j = 0; j < n; ++j) {\n            result[i][j] = 0;\n            for (int k = 0; k < n; ++k) {\n                result[i][j] += A[i][k] * A[j][k];\n            }\n        }\n    }\n}",
+          "code": "#include <vector>\n#include <omp.h>\n\nusing Matrix = std::vector<std::vector<int>>;\n\nvoid matrix_multiply(const Matrix& A, Matrix& result) {\n    int n = A.size();\n    result.resize(n, std::vector<int>(n, 0));\n\n    // MODIFIED: Declared j and k before the parallel region\n    int j, k;\n    #pragma omp parallel for collapse(2) private(j, k)\n    for (int i = 0; i < n; ++i) {\n        for (j = 0; j < n; ++j) { // MODIFIED: Used declared j here\n            int sum = 0; // MODIFIED: Introduced local variable for accumulation\n            for (k = 0; k < n; ++k) { // MODIFIED: Used declared k here\n                sum += A[i][k] * A[k][j];\n            }\n            result[i][j] = sum; // MODIFIED: Assigned accumulated sum to result\n        }\n    }\n}",
           "framework": "OpenMP"
+        },
+        "modification_record": {
+          "requirements": "none",
+          "error_info": ""
         }
       },
       {
@@ -144,61 +68,23 @@
                 "threads": 16,
                 "frequency": "3.6 GHz",
                 "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
-              },
-              {
-                "cores": 8,
-                "threads": 16,
-                "frequency": "3.6 GHz",
-                "available": "True"
               }
             ],
             "gpu": {
-              "cuda_cores": 10496,
+              "cuda_cores": 3584,
               "memory": {
-                "size": "24 GB",
-                "type": "GDDR6X"
+                "size": "12 GB",
+                "type": "GDDR6"
               },
               "available": "True"
             }
           },
-          "code": "#include <vector>\n#include <queue>\n#include <omp.h>\n\nvoid bfs(const Graph& graph, int start, std::vector<int>& result) {\n    std::vector<bool> visited(graph.numVertices, false);\n    std::queue<int> q;\n    q.push(start);\n    visited[start] = true;\n\n    while (!q.empty()) {\n        int current = q.front();\n        q.pop();\n        result.push_back(current);\n\n        int startEdge = graph.offset[current];\n        int endEdge = (current == graph.numVertices - 1) ? graph.numEdges : graph.offset[current + 1];\n\n        #pragma omp parallel for\n        for (int i = startEdge; i < endEdge; ++i) {\n            int neighbor = graph.edges[i];\n            if (!visited[neighbor]) {\n                #pragma omp critical\n                {\n                    if (!visited[neighbor]) {\n                        visited[neighbor] = true;\n                        q.push(neighbor);\n                    }\n                }\n            }\n        }\n    }\n\n    for (int node : result) {\n        std::cout << node << \" \";\n    }\n    std::cout << std::endl;\n}",
+          "code": "#include <iostream>\n#include <vector>\n#include <queue>\n#include <omp.h>\n\nvoid bfs(const Graph& graph, int start, std::vector<int>& result) {\n    std::vector<bool> visited(graph.numVertices, false);\n    std::queue<int> q;\n\n    q.push(start);\n    visited[start] = true;\n\n    while (!q.empty()) {\n        int current = q.front();\n        q.pop();\n        result.push_back(current);\n\n        // MODIFIED: Use a local vector to store new neighbors to avoid contention on the queue\n        std::vector<int> new_neighbors;\n        \n        // MODIFIED: Use a local array for atomic operations to avoid issues with vector\n        bool local_visited[graph.numVertices];\n        #pragma omp parallel for\n        for (int i = 0; i < graph.numVertices; ++i) {\n            local_visited[i] = false;\n        }\n\n        #pragma omp parallel for\n        for (int i = graph.offset[current]; i < graph.offset[current + 1]; ++i) {\n            int neighbor = graph.edges[i];\n            // MODIFIED: Use local array for atomic operations\n            if (!local_visited[neighbor]) {\n                bool already_visited;\n                #pragma omp atomic capture\n                {\n                    already_visited = visited[neighbor];\n                    if (!already_visited) {\n                        visited[neighbor] = true;\n                    }\n                }\n                if (!already_visited) {\n                    local_visited[neighbor] = true;\n                    new_neighbors.push_back(neighbor);\n                }\n            }\n        }\n\n        // MODIFIED: Add all new neighbors to the queue in a single critical section\n        #pragma omp critical\n        {\n            for (int neighbor : new_neighbors) {\n                q.push(neighbor);\n            }\n        }\n    }\n\n    for (int vertex : result) {\n        std::cout << vertex << \" \";\n    }\n    std::cout << std::endl;\n}",
           "framework": "OpenMP"
+        },
+        "modification_record": {
+          "requirements": "减少内存占用，增加多核CPU的使用率",
+          "error_info": "1.#pragma omp atomic 指令要求操作的变量必须是标量类型，并且操作必须是简单的读写操作。\n在代码中，visited 是一个布尔数组，already_visited = visited[neighbor] 是一个赋值操作，而 #pragma omp atomic 不支持直接对数组元素进行原子读取。\n2.#pragma omp atomic 指令要求操作的变量必须是标量类型，并且操作必须是简单的读写操作。如果 visited 是一个vector，#pragma omp atomic 可能无法正确工作。"
         }
       }
     ]

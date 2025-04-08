@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <numeric>
 
 std::vector<int> loadFileToVector(const std::string& filename) {
     std::vector<int> result;
@@ -28,14 +29,17 @@ std::vector<int> loadFileToVector(const std::string& filename) {
 Graph loadGraphFromFile(const std::string& filename) {
     std::ifstream file(filename);
     Graph graph;
-    std::vector<std::vector<int>> tempGraph;
 
     if (!file.is_open()) {
         std::cerr << "无法打开文件: " << filename << std::endl;
         return {0, 0, nullptr, nullptr};
     }
 
-    // 读取数据到临时邻接表
+    // 读取文件内容并构建CSR格式
+    std::vector<int> tempEdges;
+    std::vector<int> tempOffset;
+    tempOffset.push_back(0);
+
     int maxVertex = 0;
     std::string line;
     while (std::getline(file, line)) {
@@ -43,35 +47,35 @@ Graph loadGraphFromFile(const std::string& filename) {
         int u, v;
         if (iss >> u >> v) {
             maxVertex = std::max({maxVertex, u, v});
-            if (tempGraph.size() <= maxVertex) tempGraph.resize(maxVertex + 1);
-            tempGraph[u].push_back(v);
-            tempGraph[v].push_back(u);
+            tempEdges.push_back(v);
+            if (tempOffset.size() <= u + 1) {
+                tempOffset.resize(u + 2);
+            }
+            tempOffset[u + 1]++;
         }
     }
     file.close();
 
-    // 转换为CSR格式
-    graph.numVertices = tempGraph.size();
+    // 计算顶点偏移
+    graph.numVertices = maxVertex + 1;
     graph.offset = new int[graph.numVertices + 1];
-    graph.offset[0] = 0;
-    
-    for (int i = 0; i < tempGraph.size(); ++i) {
-        graph.offset[i+1] = graph.offset[i] + tempGraph[i].size();
-    }
-    
-    graph.numEdges = graph.offset[tempGraph.size()];
+    std::partial_sum(tempOffset.begin(), tempOffset.end(), graph.offset);
+
+    // 构建边数组
+    graph.numEdges = graph.offset[graph.numVertices];
     graph.edges = new int[graph.numEdges];
-    
-    int idx = 0;
-    for (const auto& list : tempGraph) {
-        for (int v : list) {
-            graph.edges[idx++] = v;
-        }
+
+    // 填充边数组
+    std::vector<int> edgeIndex(graph.numVertices + 1, 0);
+    for (int i = 0; i < tempEdges.size(); ++i) {
+        int u = i / (graph.numVertices + 1); // 假设每行只包含两个顶点
+        int idx = graph.offset[u] + edgeIndex[u];
+        graph.edges[idx] = tempEdges[i];
+        edgeIndex[u]++;
     }
 
     return graph;
 }
-
 int main(int argc, char* argv[]) {
     if (argc != 3) {
         std::cerr << "Usage: " << argv[0] << " <input_file> <result_file>" << std::endl;
